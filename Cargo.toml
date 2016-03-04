@@ -1,0 +1,8 @@
+[package]
+name = "chromecast-link"
+version = "0.1.0"
+authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
+
+[dependencies]
+
+[dependencies.protobuf]
