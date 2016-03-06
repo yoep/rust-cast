@@ -6,199 +6,123 @@ extern crate protobuf;
 extern crate serde;
 extern crate serde_json;
 
-mod cast_api;
+mod cast;
+mod utils;
 
 use std::io::prelude::*;
 use std::net::{TcpStream, ToSocketAddrs};
-use std::error::Error;
-use std::mem::transmute;
-use std::ptr::copy_nonoverlapping;
 use std::io;
 
 use openssl::ssl::{SslContext, SslStream, SslMethod};
 
-use cast_api::cast_channel::*;
+use cast::requests;
+use cast::cast_channel::*;
+
 use protobuf::*;
 
-const PLATFORM_DESTINATION: &'static str = "receiver-0";
+const DEFAULT_SOURCE_ID: &'static str = "sender-0";
+const DEFAULT_DESTINATION_ID: &'static str = "receiver-0";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct ServiceRequest {
-    #[serde(rename="type")]
-    typ: String,
-}
+const NS_CONNECTION: &'static str = "urn:x-cast:com.google.cast.tp.connection";
+const NS_HEARTBEAT: &'static str = "urn:x-cast:com.google.cast.tp.heartbeat";
+const NS_RECEIVER: &'static str = "urn:x-cast:com.google.cast.receiver";
+const NS_MEDIA: &'static str = "urn:x-cast:com.google.cast.media";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct AppLaunchRequest {
-    #[serde(rename="type")]
-    typ: String,
-    #[serde(rename="requestId")]
-    request_id: i32,
-    #[serde(rename="appId")]
-    app_id: String,
-}
+const MESSAGE_TYPE_PING: &'static str = "PING";
+const MESSAGE_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
+const MESSAGE_TYPE_PONG: &'static str = "PONG";
+const MESSAGE_TYPE_CONNECT: &'static str = "CONNECT";
+const MESSAGE_TYPE_CLOSE: &'static str = "CLOSE";
+const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
+const MESSAGE_TYPE_LAUNCH: &'static str = "LAUNCH";
+const MESSAGE_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
+const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Media {
-    #[serde(rename="contentId")]
-    content_id: String,
-    #[serde(rename="streamType")]
-    stream_type: String,
-    #[serde(rename="contentType")]
-    content_type: String,
-}
+const STREAM_TYPE_UNKNOWN: &'static str = "UNKNOWN";
+const STREAM_TYPE_BUFFERED: &'static str = "BUFFERED";
+const STREAM_TYPE_LIVE: &'static str = "LIFE";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct CustomData {
-    #[serde(skip_serializing)]
-    _id: (),
-}
+const APP_BACKDROP: &'static str = "E8C28D3C";
+const APP_YOUTUBE: &'static str = "YouTube";
+const APP_MEDIA_RECEIVER: &'static str = "CC1AD845";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct MediaRequest {
-    #[serde(rename="currentTime")]
-    current_time: f64,
-    media: Media,
-    #[serde(rename="customData")]
-    custom_data: CustomData,
-    #[serde(rename="sessionId")]
-    session_id: String,
-    #[serde(rename="requestId")]
-    request_id: i32,
-    #[serde(rename="type")]
-    typ: String,
-    autoplay: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Volume {
-    level: f64,
-    muted: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Namespace {
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Application {
-    #[serde(rename="appId")]
-    app_id: String,
-    #[serde(rename="displayName")]
-    display_name: String,
-    namespaces: Vec<Namespace>,
-    #[serde(rename="sessionId")]
-    session_id: String,
-    #[serde(rename="statusText")]
-    status_text: String,
-    #[serde(rename="transportId")]
-    transport_id: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ReceiverStatus {
-    #[serde(default)]
-    applications: Vec<Application>,
-    #[serde(rename="isActiveInput")]
-    is_active_input: bool,
-    #[serde(rename="isStandBy")]
-    is_stand_by: bool,
-    volume: Volume,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ReceiverMessagePayload {
-    #[serde(rename="requestId")]
-    request_id: i32,
-    #[serde(rename="type")]
-    typ: String,
-    status: ReceiverStatus,
-}
-
-fn read_big_endian_u32(buf: &[u8]) -> u32 {
-    unsafe { (*(buf.as_ptr() as *const u32)).to_be() }
-}
-
-fn write_big_endian_u32(buf: &mut [u8], n: u32) {
-    unsafe {
-        let bytes = transmute::<_, [u8; 4]>(n.to_be());
-        copy_nonoverlapping((&bytes).as_ptr(), buf.as_mut_ptr(), 4);
-    }
-}
-
-fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Box<Error>> {
-    let mut buf: Vec<u8> = Vec::new();
-    try!(message.write_to_writer(&mut buf));
-    Ok(buf)
-}
-
-/// Read a message in a buffer (Vec<u8>)
-fn from_vec<M: MessageStatic>(buf: Vec<u8>) -> Result<M, Box<Error>> {
-    let mut read_buf = std::io::Cursor::new(buf);
-    Ok(try!(protobuf::parse_from_reader::<M>(&mut read_buf)))
-}
-
-fn create_message(namespace: &str, destination: &str, payload: String) -> CastMessage {
+fn create_message(namespace: &str,
+                  source: &str,
+                  destination: &str,
+                  receiver_respons: String)
+                  -> CastMessage {
     let mut message = CastMessage::new();
 
     message.set_protocol_version(CastMessage_ProtocolVersion::CASTV2_1_0);
-    message.set_source_id("sender-0".to_owned());
-    message.set_destination_id(destination.to_owned());
 
     message.set_namespace(namespace.to_owned());
+    message.set_source_id(source.to_owned());
+    message.set_destination_id(destination.to_owned());
+
     message.set_payload_type(CastMessage_PayloadType::STRING);
-    message.set_payload_utf8(payload);
+    message.set_payload_utf8(receiver_respons);
 
     message
 }
 
-fn get_connect_message(destination: Option<&str>) -> CastMessage {
-    let payload = serde_json::to_string(&ServiceRequest { typ: format!("CONNECT") });
+fn get_connect_message(destination: &str) -> CastMessage {
+    let request = requests::GenericRequest { typ: MESSAGE_TYPE_CONNECT.to_owned() };
 
-    create_message("urn:x-cast:com.google.cast.tp.connection",
-                   destination.unwrap_or(PLATFORM_DESTINATION),
-                   payload.unwrap())
+    create_message(NS_CONNECTION,
+                   DEFAULT_SOURCE_ID,
+                   destination,
+                   serde_json::to_string(&request).unwrap())
 }
 
 fn get_ping_message() -> CastMessage {
-    let payload = serde_json::to_string(&ServiceRequest { typ: format!("PING") });
+    let request = requests::GenericRequest { typ: MESSAGE_TYPE_PING.to_owned() };
 
-    create_message("urn:x-cast:com.google.cast.tp.heartbeat",
-                   PLATFORM_DESTINATION,
-                   payload.unwrap())
+    create_message(NS_HEARTBEAT,
+                   DEFAULT_SOURCE_ID,
+                   DEFAULT_DESTINATION_ID,
+                   serde_json::to_string(&request).unwrap())
 }
 
-fn get_app_launch_message(app_id: String) -> CastMessage {
-    let payload = serde_json::to_string(&AppLaunchRequest {
-        typ: format!("LAUNCH"),
-        app_id: app_id,
+fn get_app_launch_message(app_id: &str) -> CastMessage {
+    let request = requests::AppLaunchRequest {
         request_id: 1,
-    });
+        typ: MESSAGE_TYPE_LAUNCH.to_owned(),
+        app_id: app_id.to_owned(),
+    };
 
-    create_message("urn:x-cast:com.google.cast.receiver",
-                   PLATFORM_DESTINATION,
-                   payload.unwrap())
+    create_message(NS_RECEIVER,
+                   DEFAULT_SOURCE_ID,
+                   DEFAULT_DESTINATION_ID,
+                   serde_json::to_string(&request).unwrap())
 }
 
-fn get_play_media_message(session_id: &str, destination: &str, url: String) -> CastMessage {
-    let payload = serde_json::to_string(&MediaRequest {
-        typ: format!("LOAD"),
-        media: Media {
-            content_id: url,
-            stream_type: format!("BUFFERED"),
-            content_type: format!("video/mp4"),
+fn get_play_media_message(session_id: &str,
+                          destination: &str,
+                          url: &str,
+                          content_type: &str)
+                          -> CastMessage {
+    let request = requests::MediaRequest {
+        request_id: 2,
+        session_id: session_id.to_owned(),
+        typ: MESSAGE_TYPE_LOAD.to_owned(),
+
+        media: requests::Media {
+            content_id: url.to_owned(),
+            stream_type: STREAM_TYPE_BUFFERED.to_owned(),
+            content_type: content_type.to_owned(),
         },
+
         current_time: 0_f64,
         autoplay: true,
-        custom_data: CustomData { _id: () },
-        request_id: 1,
-        session_id: session_id.to_owned(),
-    });
+        custom_data: requests::CustomData::new(),
+    };
 
-    create_message("urn:x-cast:com.google.cast.media",
+
+
+    create_message(NS_MEDIA,
+                   DEFAULT_SOURCE_ID,
                    destination,
-                   payload.unwrap())
+                   serde_json::to_string(&request).unwrap())
 }
 
 fn read_length<T>(reader: &mut T) -> u32
@@ -208,7 +132,7 @@ fn read_length<T>(reader: &mut T) -> u32
     let mut limited_reader = reader.take(4);
     limited_reader.read_to_end(&mut buffer).unwrap();
 
-    read_big_endian_u32(&buffer)
+    utils::read_u32_from_buffer(&buffer)
 }
 
 fn read_message<T>(reader: &mut T) -> CastMessage
@@ -220,24 +144,24 @@ fn read_message<T>(reader: &mut T) -> CastMessage
     let mut limited_reader = reader.take(length as u64);
     limited_reader.read_to_end(&mut buffer).unwrap();
 
-    from_vec(buffer.iter().cloned().collect()).unwrap()
+    utils::from_vec(buffer.iter().cloned().collect()).unwrap()
 }
 
 fn send_message<T>(writer: &mut T, message: CastMessage)
     where T: io::Write
 {
-    let serialized_message = to_vec(message).unwrap();
+    let serialized_message = utils::to_vec(message).unwrap();
 
     // ignore the Result
     let mut length_buf: [u8; 4] = [0, 0, 0, 0];
-    write_big_endian_u32(&mut length_buf, serialized_message.len() as u32);
+    utils::write_u32_to_buffer(&mut length_buf, serialized_message.len() as u32);
 
     writer.write(&length_buf).unwrap();
     writer.write(&serialized_message).unwrap();
 }
 
 fn main() {
-    let address: Vec<_> = ("192.168.1.18", 8009)
+    let address: Vec<_> = ("192.168.1.19", 8009)
                               .to_socket_addrs()
                               .unwrap()
                               .collect();
@@ -247,50 +171,42 @@ fn main() {
 
     let mut ssl_stream = SslStream::connect(&ssl_context, stream).unwrap();
 
-    println!("Stream opened!!!");
-
-    send_message(&mut ssl_stream, get_connect_message(None));
+    send_message(&mut ssl_stream, get_connect_message(DEFAULT_DESTINATION_ID));
     send_message(&mut ssl_stream, get_ping_message());
-    // send_message(&mut ssl_stream, get_app_launch_message(format!("YouTube")));
-    send_message(&mut ssl_stream, get_app_launch_message(format!("CC1AD845")));
-
-    println!("Sent message");
-
-    let mut i = 0;
+    send_message(&mut ssl_stream, get_app_launch_message(APP_MEDIA_RECEIVER));
 
     loop {
         let message = read_message(&mut ssl_stream);
 
-        println!("-----\nDeserialized message: {:?}", message);
+        println!("---------------------\nReceived: {:?}", message);
 
         match message.get_namespace() {
-            "urn:x-cast:com.google.cast.receiver" => {
-                let payload_str = message.get_payload_utf8();
-                let payload: ReceiverMessagePayload = serde_json::from_str(payload_str).unwrap();
+            NS_RECEIVER => {
+                let receiver_response: requests::ReceiverResponse =
+                    serde_json::from_str(message.get_payload_utf8()).unwrap();
 
-                println!("-----\nPyaload {:?}", payload);
+                println!("---------------------\nPyaload {:?}", receiver_response);
 
-                if payload.status.applications.len() > 0 {
-                    send_message(&mut ssl_stream, get_connect_message(Some(&payload.status.applications[0]
-                                                                   .transport_id)));
+                if receiver_response.status.applications.len() > 0 {
+                    let application = &receiver_response.status.applications[0];
 
-                    let play_message = get_play_media_message(&payload.status.applications[0]
-                                                                   .session_id,
-                                                              &payload.status.applications[0]
-                                                                   .transport_id,
-                                                              format!("http://commondatastorage.\
-                                                                       googleapis.\
-                                                                       com/gtv-videos-bucket/sam\
-                                                                       ple/BigBuckBunny.mp4"));
-                    println!("-----\nPlay message {:?}", play_message);
+                    // Connect to application.
+                    send_message(&mut ssl_stream,
+                                 get_connect_message(&application.transport_id));
+
+                    let video_url = "http://commondatastorage.googleapis.\
+                                     com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+                    // Ask application to load video.
+                    let play_message = get_play_media_message(&application.session_id,
+                                                              &application.transport_id,
+                                                              video_url,
+                                                              "video/mp4");
+                    println!("---------------------\nPlay message {:?}", play_message);
                     send_message(&mut ssl_stream, play_message);
-
-
                 }
             }
             _ => {}
         }
-
-        i = i + 1;
     }
 }
