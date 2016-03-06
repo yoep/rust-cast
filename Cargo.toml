@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 
 [dependencies]
-
-[dependencies.protobuf]
+openssl = "0.7.6"
+protobuf = "1.0.18"
+serde = "0.7.0"
+serde_json = "0.7.0"
+serde_macros = "0.7.0"
