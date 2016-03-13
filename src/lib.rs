@@ -6,10 +6,10 @@ extern crate protobuf;
 extern crate serde;
 extern crate serde_json;
 
-pub mod utils;
-pub mod channels;
-pub mod message_manager;
 pub mod cast;
+mod utils;
+mod message_manager;
+pub mod channels;
 
 use std::cell::RefCell;
 use std::io;
@@ -29,6 +29,26 @@ use message_manager::MessageManager;
 
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
+
+pub struct ChromecastAppsNames<'a> {
+    pub backdrop: &'a str,
+    pub default_media_receiver: &'a str,
+    pub youtube: &'a str,
+    #[allow(dead_code)]
+    private: ()
+}
+
+pub const CHROMECAST_APPS: ChromecastAppsNames<'static> = ChromecastAppsNames {
+    backdrop: "E8C28D3C",
+    default_media_receiver: "CC1AD845",
+    youtube: "YouTube",
+    private: (),
+};
+
+pub enum ChromecastApps {
+    DefaultMediaReceiver,
+    YouTube,
+}
 
 pub struct Chromecast {
     host: String,

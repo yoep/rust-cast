@@ -52,7 +52,7 @@ pub struct Media {
     pub content_type: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct CustomData {
     #[serde(skip_serializing)]
     private: (),
