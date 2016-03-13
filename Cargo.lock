@@ -1,5 +1,5 @@
 [root]
-name = "chromecast-link"
+name = "chromecast_link"
 version = "0.1.0"
 dependencies = [
  "openssl 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",

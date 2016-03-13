@@ -10,7 +10,7 @@ mod cast;
 mod utils;
 
 use std::io::prelude::*;
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{TcpStream, ToSocketAddrs, SocketAddr};
 use std::io;
 
 use openssl::ssl::{SslContext, SslStream, SslMethod};
@@ -20,8 +20,8 @@ use cast::cast_channel::*;
 
 use protobuf::*;
 
-const DEFAULT_SOURCE_ID: &'static str = "sender-0";
-const DEFAULT_DESTINATION_ID: &'static str = "receiver-0";
+const DEFAULT_SOURCE_ID: &'static str = "chromecast-link-0";
+const PLATFORM_DESTINATION_ID: &'static str = "receiver-0";
 
 const NS_CONNECTION: &'static str = "urn:x-cast:com.google.cast.tp.connection";
 const NS_HEARTBEAT: &'static str = "urn:x-cast:com.google.cast.tp.heartbeat";
@@ -79,7 +79,7 @@ fn get_ping_message() -> CastMessage {
 
     create_message(NS_HEARTBEAT,
                    DEFAULT_SOURCE_ID,
-                   DEFAULT_DESTINATION_ID,
+                   PLATFORM_DESTINATION_ID,
                    serde_json::to_string(&request).unwrap())
 }
 
@@ -92,7 +92,7 @@ fn get_app_launch_message(app_id: &str) -> CastMessage {
 
     create_message(NS_RECEIVER,
                    DEFAULT_SOURCE_ID,
-                   DEFAULT_DESTINATION_ID,
+                   PLATFORM_DESTINATION_ID,
                    serde_json::to_string(&request).unwrap())
 }
 
@@ -112,7 +112,7 @@ fn get_play_media_message(session_id: &str,
             content_type: content_type.to_owned(),
         },
 
-        current_time: 0_f64,
+        current_time: 5_f64,
         autoplay: true,
         custom_data: requests::CustomData::new(),
     };
@@ -124,6 +124,53 @@ fn get_play_media_message(session_id: &str,
                    destination,
                    serde_json::to_string(&request).unwrap())
 }
+
+pub struct Chromecast {
+    address: SocketAddr,
+    stream: Option<SslStream<TcpStream>>,
+}
+
+impl Chromecast {
+    pub fn new(host: &str, port: u16) -> Chromecast {
+        let addresses: Vec<SocketAddr> = (host, port).to_socket_addrs().unwrap().collect();
+
+        Chromecast {
+            address: addresses[0],
+            stream: None,
+        }
+    }
+
+    pub fn get_address(&self) -> &SocketAddr {
+        &self.address
+    }
+
+    pub fn connect(&mut self) {
+        let stream = TcpStream::connect(self.address).unwrap();
+        let ssl_context = SslContext::new(SslMethod::Sslv23).unwrap();
+
+        let mut stream = SslStream::connect(&ssl_context, stream).unwrap();
+
+        self.send_message(get_connect_message(PLATFORM_DESTINATION_ID));
+        self.send_message(get_ping_message());
+
+        self.stream = Some(stream);
+    }
+
+    pub fn open_app(&self, app_id: &str) {}
+
+    fn send_message(&mut self, message: CastMessage) {
+        let serialized_message = utils::to_vec(message).unwrap();
+
+        let mut length_buf: [u8; 4] = [0, 0, 0, 0];
+        utils::write_u32_to_buffer(&mut length_buf, serialized_message.len() as u32);
+
+        let mut stream = self.stream.as_mut().unwrap();
+        stream.write(&length_buf).unwrap();
+        stream.write(&serialized_message).unwrap();
+    }
+}
+
+
 
 fn read_length<T>(reader: &mut T) -> u32
     where T: io::Read + Sized
@@ -161,17 +208,20 @@ fn send_message<T>(writer: &mut T, message: CastMessage)
 }
 
 fn main() {
-    let address: Vec<_> = ("192.168.1.19", 8009)
+    let address: Vec<_> = ("192.168.1.9", 8009)
                               .to_socket_addrs()
                               .unwrap()
                               .collect();
+
+
 
     let stream = TcpStream::connect(address[0]).unwrap();
     let ssl_context = SslContext::new(SslMethod::Sslv23).unwrap();
 
     let mut ssl_stream = SslStream::connect(&ssl_context, stream).unwrap();
 
-    send_message(&mut ssl_stream, get_connect_message(DEFAULT_DESTINATION_ID));
+    send_message(&mut ssl_stream,
+                 get_connect_message(PLATFORM_DESTINATION_ID));
     send_message(&mut ssl_stream, get_ping_message());
     send_message(&mut ssl_stream, get_app_launch_message(APP_MEDIA_RECEIVER));
 
@@ -194,16 +244,16 @@ fn main() {
                     send_message(&mut ssl_stream,
                                  get_connect_message(&application.transport_id));
 
-                    let video_url = "http://commondatastorage.googleapis.\
-                                     com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+                    let video_url = "http://admin:271177@dcs5020l77da.local/video.cgi";
 
                     // Ask application to load video.
                     let play_message = get_play_media_message(&application.session_id,
                                                               &application.transport_id,
                                                               video_url,
-                                                              "video/mp4");
+                                                              "video/x-jpeg");
                     println!("---------------------\nPlay message {:?}", play_message);
                     send_message(&mut ssl_stream, play_message);
+                    break;
                 }
             }
             _ => {}

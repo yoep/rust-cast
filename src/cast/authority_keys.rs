@@ -74,16 +74,21 @@ impl ::protobuf::Message for AuthorityKeys {
         true
     }
 
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+    fn merge_from(&mut self,
+                  is: &mut ::protobuf::CodedInputStream)
+                  -> ::protobuf::ProtobufResult<()> {
         while !try!(is.eof()) {
             let (field_number, wire_type) = try!(is.read_tag_unpack());
             match field_number {
                 1 => {
                     try!(::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.keys));
-                },
+                }
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields()));
-                },
+                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number,
+                                                                    wire_type,
+                                                                    is,
+                                                                    self.mut_unknown_fields()));
+                }
             };
         }
         ::std::result::Result::Ok(())
@@ -96,18 +101,20 @@ impl ::protobuf::Message for AuthorityKeys {
         for value in self.keys.iter() {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-        };
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
     }
 
-    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+    fn write_to_with_cached_sizes(&self,
+                                  os: &mut ::protobuf::CodedOutputStream)
+                                  -> ::protobuf::ProtobufResult<()> {
         for v in self.keys.iter() {
             try!(os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited));
             try!(os.write_raw_varint32(v.get_cached_size()));
             try!(v.write_to_with_cached_sizes(os));
-        };
+        }
         try!(os.write_unknown_fields(self.get_unknown_fields()));
         ::std::result::Result::Ok(())
     }
@@ -152,8 +159,7 @@ impl ::protobuf::Clear for AuthorityKeys {
 
 impl ::std::cmp::PartialEq for AuthorityKeys {
     fn eq(&self, other: &AuthorityKeys) -> bool {
-        self.keys == other.keys &&
-        self.unknown_fields == other.unknown_fields
+        self.keys == other.keys && self.unknown_fields == other.unknown_fields
     }
 }
 
@@ -276,19 +282,28 @@ impl ::protobuf::Message for AuthorityKeys_Key {
         true
     }
 
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+    fn merge_from(&mut self,
+                  is: &mut ::protobuf::CodedInputStream)
+                  -> ::protobuf::ProtobufResult<()> {
         while !try!(is.eof()) {
             let (field_number, wire_type) = try!(is.read_tag_unpack());
             match field_number {
                 1 => {
-                    try!(::protobuf::rt::read_singular_bytes_into(wire_type, is, &mut self.fingerprint));
-                },
+                    try!(::protobuf::rt::read_singular_bytes_into(wire_type,
+                                                                  is,
+                                                                  &mut self.fingerprint));
+                }
                 2 => {
-                    try!(::protobuf::rt::read_singular_bytes_into(wire_type, is, &mut self.public_key));
-                },
+                    try!(::protobuf::rt::read_singular_bytes_into(wire_type,
+                                                                  is,
+                                                                  &mut self.public_key));
+                }
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields()));
-                },
+                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number,
+                                                                    wire_type,
+                                                                    is,
+                                                                    self.mut_unknown_fields()));
+                }
             };
         }
         ::std::result::Result::Ok(())
@@ -300,16 +315,18 @@ impl ::protobuf::Message for AuthorityKeys_Key {
         let mut my_size = 0;
         for value in self.fingerprint.iter() {
             my_size += ::protobuf::rt::bytes_size(1, &value);
-        };
+        }
         for value in self.public_key.iter() {
             my_size += ::protobuf::rt::bytes_size(2, &value);
-        };
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
     }
 
-    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+    fn write_to_with_cached_sizes(&self,
+                                  os: &mut ::protobuf::CodedOutputStream)
+                                  -> ::protobuf::ProtobufResult<()> {
         if let Some(v) = self.fingerprint.as_ref() {
             try!(os.write_bytes(1, &v));
         };
@@ -361,8 +378,7 @@ impl ::protobuf::Clear for AuthorityKeys_Key {
 
 impl ::std::cmp::PartialEq for AuthorityKeys_Key {
     fn eq(&self, other: &AuthorityKeys_Key) -> bool {
-        self.fingerprint == other.fingerprint &&
-        self.public_key == other.public_key &&
+        self.fingerprint == other.fingerprint && self.public_key == other.public_key &&
         self.unknown_fields == other.unknown_fields
     }
 }

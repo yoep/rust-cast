@@ -82,7 +82,7 @@ pub struct ReceiverStatus {
     #[serde(rename="isActiveInput", default)]
     pub is_active_input: bool,
 
-    #[serde(rename="isStandBy")]
+    #[serde(rename="isStandBy", default)]
     pub is_stand_by: bool,
 
     pub volume: ReceiverVolume,
