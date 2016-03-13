@@ -110,12 +110,14 @@ pub struct ReceiverVolume {
 #[derive(Deserialize, Debug)]
 pub struct LaunchErrorReply {
     #[serde(rename="type")]
-    typ: String
+    typ: String,
 }
 
-pub enum Replies {
+#[derive(Debug)]
+pub enum Reply {
     Status(StatusReply),
-    LaunchError(LaunchErrorReply)
+    LaunchError(LaunchErrorReply),
+    Unknown,
 }
 
 pub struct ReceiverChannel<W>
@@ -172,7 +174,7 @@ impl<W> ReceiverChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message);
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Replies, ()> {
+    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, ()> {
         if message.get_namespace() != CHANNEL_NAMESPACE {
             return Err(());
         }
@@ -184,14 +186,12 @@ impl<W> ReceiverChannel<W>
             reply_object_value.get("type").unwrap().as_string().unwrap().to_owned()
         };
 
-        if message_type == REPLY_TYPE_RECEIVER_STATUS {
-            let status_reply: StatusReply = from_value(reply).unwrap();
-            Ok(Replies::Status(status_reply))
-        } else if message_type == REPLY_TYPE_LAUNCH_ERROR {
-            let launch_error_reply: LaunchErrorReply = from_value(reply).unwrap();
-            Ok(Replies::LaunchError(launch_error_reply))
-        } else {
-            panic!("Not supported receiver message type: {}", message_type);
-        }
+        let reply = match &message_type as &str {
+            REPLY_TYPE_RECEIVER_STATUS => Reply::Status(from_value(reply).unwrap()),
+            REPLY_TYPE_LAUNCH_ERROR => Reply::LaunchError(from_value(reply).unwrap()),
+            _ => Reply::Unknown,
+        };
+
+        Ok(reply)
     }
 }

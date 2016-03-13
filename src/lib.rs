@@ -19,9 +19,12 @@ use std::rc::Rc;
 use openssl::ssl::{SslContext, SslStream, SslMethod};
 
 use cast::cast_channel;
+
 use channels::heartbeat::HeartbeatChannel;
 use channels::connection::ConnectionChannel;
 use channels::receiver::ReceiverChannel;
+use channels::media::MediaChannel;
+
 use message_manager::MessageManager;
 
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
@@ -120,6 +123,20 @@ impl Chromecast {
             ReceiverChannel::new(DEFAULT_SENDER_ID.to_owned(),
                                  DEFAULT_RECEIVER_ID.to_owned(),
                                  stream_rc.clone())
+        } else {
+            panic!("Chromecast is not connected!");
+        }
+    }
+
+    pub fn create_media_channel(&self,
+                                receiver: String,
+                                session_id: String)
+                                -> MediaChannel<SslStream<TcpStream>> {
+        if let Some(stream_rc) = self.stream.as_ref() {
+            MediaChannel::new(DEFAULT_SENDER_ID.to_owned(),
+                              receiver,
+                              session_id,
+                              stream_rc.clone())
         } else {
             panic!("Chromecast is not connected!");
         }
