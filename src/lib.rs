@@ -7,7 +7,7 @@ extern crate serde;
 extern crate serde_json;
 
 pub mod utils;
-mod channels;
+pub mod channels;
 pub mod message_manager;
 pub mod cast;
 
@@ -22,6 +22,7 @@ use cast::cast_channel;
 use channels::heartbeat::HeartbeatChannel;
 use channels::connection::ConnectionChannel;
 use channels::receiver::ReceiverChannel;
+use message_manager::MessageManager;
 
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
@@ -80,11 +81,47 @@ impl Chromecast {
         self.connection = Some(ConnectionChannel::new(DEFAULT_SENDER_ID.to_owned(),
                                                       ssl_stream_rc.clone()));
         self.receiver = Some(ReceiverChannel::new(DEFAULT_SENDER_ID.to_owned(),
-                                                    DEFAULT_RECEIVER_ID.to_owned(),
-                                                    ssl_stream_rc.clone()));
+                                                  DEFAULT_RECEIVER_ID.to_owned(),
+                                                  ssl_stream_rc.clone()));
 
         self.stream = Some(ssl_stream_rc);
 
         Ok(())
+    }
+
+    pub fn receive(&mut self) -> cast_channel::CastMessage {
+        if let Some(stream_rc) = self.stream.as_ref() {
+            MessageManager::receive(&mut *stream_rc.borrow_mut())
+        } else {
+            panic!("Chromecast is not connected!");
+        }
+    }
+
+    pub fn create_heartbeat_channel(&self) -> HeartbeatChannel<SslStream<TcpStream>> {
+        if let Some(stream_rc) = self.stream.as_ref() {
+            HeartbeatChannel::new(DEFAULT_SENDER_ID.to_owned(),
+                                  DEFAULT_RECEIVER_ID.to_owned(),
+                                  stream_rc.clone())
+        } else {
+            panic!("Chromecast is not connected!");
+        }
+    }
+
+    pub fn create_connection_channel(&self) -> ConnectionChannel<SslStream<TcpStream>> {
+        if let Some(stream_rc) = self.stream.as_ref() {
+            ConnectionChannel::new(DEFAULT_SENDER_ID.to_owned(), stream_rc.clone())
+        } else {
+            panic!("Chromecast is not connected!");
+        }
+    }
+
+    pub fn create_receiver_channel(&self) -> ReceiverChannel<SslStream<TcpStream>> {
+        if let Some(stream_rc) = self.stream.as_ref() {
+            ReceiverChannel::new(DEFAULT_SENDER_ID.to_owned(),
+                                 DEFAULT_RECEIVER_ID.to_owned(),
+                                 stream_rc.clone())
+        } else {
+            panic!("Chromecast is not connected!");
+        }
     }
 }
