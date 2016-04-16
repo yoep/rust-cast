@@ -17,5 +17,8 @@
 * `Chromecast Audio` - Chromecast Audio device, supports only audio.
 
 
-DIAL Protocol
-http://www.dial-multiscreen.org/
+# Useful links
+
+* [DIAL Protocol](http://www.dial-multiscreen.org/);
+* [An implementation of the Chromecast CASTV2 protocol in JS](https://github.com/thibauts/node-castv2);
+* [Chromecast - steps closer to a python native api](http://www.clift.org/fred/chromecast-steps-closer-to-a-python-native-api.html);
