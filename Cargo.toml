@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 
 [dependencies]
-openssl = "0.7.9"
-protobuf = "1.0.18"
-serde = "0.7.0"
+openssl = "0.7.11"
+protobuf = "1.0.20"
+serde = "0.7.4"
 serde_json = "0.7.0"
-serde_macros = "0.7.2"
+serde_macros = "0.7.4"
