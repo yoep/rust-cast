@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -19,7 +20,7 @@ const STREAM_TYPE_BUFFERED: &'static str = "BUFFERED";
 const STREAM_TYPE_LIVE: &'static str = "LIVE";
 
 #[derive(Serialize, Debug)]
-pub struct MediaRequest {
+pub struct MediaRequest<'a> {
     #[serde(rename="requestId")]
     pub request_id: i32,
 
@@ -29,7 +30,7 @@ pub struct MediaRequest {
     #[serde(rename="type")]
     pub typ: String,
 
-    pub media: Media,
+    pub media: Media<'a>,
 
     #[serde(rename="currentTime")]
     pub current_time: f64,
@@ -41,15 +42,15 @@ pub struct MediaRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Media {
+pub struct Media<'a> {
     #[serde(rename="contentId")]
-    pub content_id: String,
+    pub content_id: Cow<'a, str>,
 
     #[serde(rename="streamType")]
     pub stream_type: String,
 
     #[serde(rename="contentType")]
-    pub content_type: String,
+    pub content_type: Cow<'a, str>,
 }
 
 #[derive(Serialize, Debug)]
@@ -65,25 +66,25 @@ impl CustomData {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct MediaStatus {
+pub struct MediaStatus<'a> {
     #[serde(default)]
-    media: Option<Media>,
+    media: Option<Media<'a>>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct MediaStatusReply {
+pub struct MediaStatusReply<'a> {
     #[serde(rename="requestId")]
     pub request_id: i32,
 
     #[serde(rename="type")]
     pub typ: String,
 
-    pub status: MediaStatus,
+    pub status: MediaStatus<'a>,
 }
 
 #[derive(Debug)]
-pub enum Reply {
-    MediaStatus(MediaStatusReply),
+pub enum Reply<'a> {
+    MediaStatus(MediaStatusReply<'a>),
     Unknown,
 }
 
@@ -112,16 +113,16 @@ impl<W> MediaChannel<W>
         }
     }
 
-    pub fn load(&self, content_id: String, content_type: String) {
+    pub fn load<'a, S>(&self, content_id: S, content_type: S) where S: Into<Cow<'a, str>> {
         let media_request = MediaRequest {
             request_id: 1,
             session_id: self.session_id.clone(),
             typ: MESSAGE_TYPE_LOAD.to_owned(),
 
             media: Media {
-                content_id: content_id,
+                content_id: content_id.into(),
                 stream_type: STREAM_TYPE_BUFFERED.to_owned(),
-                content_type: content_type,
+                content_type: content_type.into(),
             },
 
             current_time: 0_f64,
