@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/azasypkin/chromecast-link.svg?branch=master)](https://travis-ci.org/azasypkin/chromecast-link)
+
 # DNS TXT Record description
 
 * `md` - Model Name (e.g. "Chromecast");
