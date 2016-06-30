@@ -16,7 +16,7 @@ pub fn write_u32_to_buffer(number: u32) -> Result<Vec<u8>, Error> {
     Ok(buffer)
 }
 
-pub fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Error> {
+pub fn to_vec<M: protobuf::Message>(message: &M) -> Result<Vec<u8>, Error> {
     let mut buffer = vec![];
 
     try!(message.write_to_writer(&mut buffer));

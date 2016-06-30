@@ -35,26 +35,6 @@ use message_manager::MessageManager;
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
 
-pub struct ChromecastAppsNames<'a> {
-    pub backdrop: &'a str,
-    pub default_media_receiver: &'a str,
-    pub youtube: &'a str,
-    #[allow(dead_code)]
-    private: ()
-}
-
-pub const CHROMECAST_APPS: ChromecastAppsNames<'static> = ChromecastAppsNames {
-    backdrop: "E8C28D3C",
-    default_media_receiver: "CC1AD845",
-    youtube: "YouTube",
-    private: (),
-};
-
-pub enum ChromecastApps {
-    DefaultMediaReceiver,
-    YouTube,
-}
-
 pub struct Chromecast {
     stream: Rc<RefCell<SslStream<TcpStream>>>,
 
@@ -92,11 +72,7 @@ impl Chromecast {
     }
 
     pub fn receive(&self) -> Result<cast_channel::CastMessage, Error> {
-        let message = try!(MessageManager::receive(&mut *self.stream.borrow_mut()));
-
-        debug!("Message received: {:?}", message);
-
-        Ok(message)
+        Ok(try!(MessageManager::receive(&mut *self.stream.borrow_mut())))
     }
 
     pub fn create_media_channel(&self, receiver: String, session_id: String)

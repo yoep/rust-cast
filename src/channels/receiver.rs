@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
+use std::str::FromStr;
+use std::string::ToString;
 
 use serde_json::Value;
 use serde_json::value::from_value;
@@ -17,6 +19,10 @@ const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
 
 const REPLY_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
 const REPLY_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
+
+const APP_DEFAULT_MEDIA_RECEIVER_ID: &'static str = "CC1AD845";
+const APP_BACKDROP_ID: &'static str = "E8C28D3C";
+const APP_YOUTUBE_ID: &'static str = "233637DE";
 
 #[derive(Serialize, Debug)]
 struct AppLaunchRequest {
@@ -84,7 +90,7 @@ pub struct Application {
     #[serde(rename="sessionId")]
     pub session_id: String,
 
-    #[serde(rename="transportId")]
+    #[serde(rename="transportId", default)]
     pub transport_id: String,
 
     #[serde(default)]
@@ -121,6 +127,40 @@ pub enum Reply {
     Unknown,
 }
 
+#[derive(Debug)]
+pub enum ChromecastApp {
+    DefaultMediaReceiver,
+    Backdrop,
+    YouTube,
+    Custom(String),
+}
+
+impl FromStr for ChromecastApp {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<ChromecastApp, ()> {
+        let app = match s {
+            APP_DEFAULT_MEDIA_RECEIVER_ID | "default" => ChromecastApp::DefaultMediaReceiver,
+            APP_BACKDROP_ID | "backdrop" => ChromecastApp::Backdrop,
+            APP_YOUTUBE_ID | "youtube" => ChromecastApp::YouTube,
+            custom @ _ => ChromecastApp::Custom(custom.to_owned())
+        };
+
+        Ok(app)
+    }
+}
+
+impl ToString for ChromecastApp {
+    fn to_string(&self) -> String {
+        match *self {
+            ChromecastApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_owned(),
+            ChromecastApp::Backdrop => APP_BACKDROP_ID.to_owned(),
+            ChromecastApp::YouTube => APP_YOUTUBE_ID.to_owned(),
+            ChromecastApp::Custom(ref app_id) => app_id.to_owned(),
+        }
+    }
+}
+
 pub struct ReceiverChannel<W>
     where W: Write
 {
@@ -140,11 +180,11 @@ impl<W> ReceiverChannel<W>
         }
     }
 
-    pub fn launch_app(&self, app_id: String) -> Result<(), Error> {
+    pub fn launch_app(&self, app: ChromecastApp) -> Result<(), Error> {
         let payload = AppLaunchRequest {
             typ: MESSAGE_TYPE_LAUNCH.to_owned(),
             request_id: 1,
-            app_id: app_id,
+            app_id: app.to_string(),
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),

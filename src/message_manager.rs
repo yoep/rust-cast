@@ -13,12 +13,14 @@ impl MessageManager {
     pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage)
         -> Result<(), Error> where W: Write
     {
-        let message_content_buffer = try!(utils::to_vec(message));
+        let message_content_buffer = try!(utils::to_vec(&message));
         let message_length_buffer = try!(
             utils::write_u32_to_buffer(message_content_buffer.len() as u32));
 
         try!(writer.write(&message_length_buffer));
         try!(writer.write(&message_content_buffer));
+
+        debug!("Message sent: {:?}", message);
 
         Ok(())
     }
@@ -32,7 +34,11 @@ impl MessageManager {
 
         try!(limited_reader.read_to_end(&mut buffer));
 
-        utils::from_vec(buffer.iter().cloned().collect())
+        let message = try!(utils::from_vec(buffer.iter().cloned().collect()));
+
+        debug!("Message received: {:?}", message);
+
+        Ok(message)
     }
 
     pub fn create<P>(namespace: String, sender: String, receiver: String, payload: Option<P>)
