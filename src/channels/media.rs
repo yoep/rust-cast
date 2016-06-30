@@ -6,8 +6,9 @@ use std::rc::Rc;
 use serde_json::Value;
 use serde_json::value::from_value;
 
-use message_manager::MessageManager;
 use cast::cast_channel;
+use errors::Error;
+use message_manager::MessageManager;
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.media";
 
@@ -15,9 +16,11 @@ const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 
 const REPLY_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
 
-const STREAM_TYPE_UNKNOWN: &'static str = "UNKNOWN";
-const STREAM_TYPE_BUFFERED: &'static str = "BUFFERED";
-const STREAM_TYPE_LIVE: &'static str = "LIVE";
+pub enum StreamType {
+    Unknown,
+    Buffered,
+    Live,
+}
 
 #[derive(Serialize, Debug)]
 pub struct MediaRequest<'a> {
@@ -47,7 +50,7 @@ pub struct Media<'a> {
     pub content_id: Cow<'a, str>,
 
     #[serde(rename="streamType")]
-    pub stream_type: String,
+    pub stream_type: Cow<'a, str>,
 
     #[serde(rename="contentType")]
     pub content_type: Cow<'a, str>,
@@ -113,7 +116,15 @@ impl<W> MediaChannel<W>
         }
     }
 
-    pub fn load<'a, S>(&self, content_id: S, content_type: S) where S: Into<Cow<'a, str>> {
+    pub fn stream<'a, S>(&self, content_id: S, content_type: S, stream_type: StreamType)
+        where S: Into<Cow<'a, str>> {
+
+        let stream_type_string = match stream_type {
+            StreamType::Unknown => "UNKNOWN",
+            StreamType::Buffered => "BUFFERED",
+            StreamType::Live => "LIVE",
+        };
+
         let media_request = MediaRequest {
             request_id: 1,
             session_id: self.session_id.clone(),
@@ -121,7 +132,7 @@ impl<W> MediaChannel<W>
 
             media: Media {
                 content_id: content_id.into(),
-                stream_type: STREAM_TYPE_BUFFERED.to_owned(),
+                stream_type: stream_type_string.into(),
                 content_type: content_type.into(),
             },
 
@@ -137,12 +148,12 @@ impl<W> MediaChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message);
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, ()> {
+    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {
         if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(());
+            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
         }
 
-        let reply: Value = MessageManager::parse_payload(message);
+        let reply: Value = try!(MessageManager::parse_payload(message));
 
         let message_type = {
             let reply_object_value = reply.as_object().unwrap();

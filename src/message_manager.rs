@@ -5,6 +5,7 @@ use serde_json;
 
 use cast::cast_channel;
 use utils;
+use errors::Error;
 
 pub struct MessageManager;
 
@@ -57,10 +58,10 @@ impl MessageManager {
         message
     }
 
-    pub fn parse_payload<P>(message: &cast_channel::CastMessage) -> P
+    pub fn parse_payload<P>(message: &cast_channel::CastMessage) -> Result<P, Error>
         where P: serde::Deserialize
     {
-        serde_json::from_str(message.get_payload_utf8()).unwrap()
+        Ok(try!(serde_json::from_str(message.get_payload_utf8())))
     }
 
     fn receive_length<T>(reader: &mut T) -> u32

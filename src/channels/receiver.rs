@@ -5,8 +5,9 @@ use std::rc::Rc;
 use serde_json::Value;
 use serde_json::value::from_value;
 
-use message_manager::MessageManager;
 use cast::cast_channel;
+use errors::Error;
+use message_manager::MessageManager;
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.receiver";
 
@@ -174,12 +175,12 @@ impl<W> ReceiverChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message);
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, ()> {
+    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {
         if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(());
+            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
         }
 
-        let reply: Value = MessageManager::parse_payload(message);
+        let reply: Value = try!(MessageManager::parse_payload(message));
 
         let message_type = {
             let reply_object_value = reply.as_object().unwrap();

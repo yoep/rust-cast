@@ -1,8 +1,8 @@
-use std::error::Error;
 use std::io::Cursor;
 use std::mem::transmute;
 use std::ptr::copy_nonoverlapping;
 
+use errors::Error;
 use protobuf;
 
 pub fn read_u32_from_buffer(buffer: &[u8]) -> u32 {
@@ -16,7 +16,7 @@ pub fn write_u32_to_buffer(buffer: &mut [u8], number: u32) {
     }
 }
 
-pub fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Box<Error>> {
+pub fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Error> {
     let mut buffer: Vec<u8> = Vec::new();
 
     try!(message.write_to_writer(&mut buffer));
@@ -24,7 +24,7 @@ pub fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Box<Error>> {
     Ok(buffer)
 }
 
-pub fn from_vec<M: protobuf::MessageStatic>(buffer: Vec<u8>) -> Result<M, Box<Error>> {
+pub fn from_vec<M: protobuf::MessageStatic>(buffer: Vec<u8>) -> Result<M, Error> {
     let mut read_buffer = Cursor::new(buffer);
 
     Ok(try!(protobuf::parse_from_reader::<M>(&mut read_buffer)))

@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
-use message_manager::MessageManager;
 use cast::cast_channel;
+use errors::Error;
+use message_manager::MessageManager;
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.heartbeat";
 
@@ -41,12 +42,12 @@ impl<W> HeartbeatChannel<W>
         }
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, ()> {
+    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, Error> {
         if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(());
+            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
         }
 
-        Ok(MessageManager::parse_payload(message))
+        MessageManager::parse_payload(message)
     }
 
     pub fn ping(&self) {

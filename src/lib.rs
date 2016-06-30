@@ -64,9 +64,13 @@ pub struct Chromecast {
 
 impl Chromecast {
     pub fn connect(host: String, port: u16) -> Result<Chromecast, Error> {
+        debug!("Establishing connection with Chromecast at {}:{}...", host, port);
+
         let ssl_context = try!(SslContext::new(SslMethod::Sslv23));
         let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
         let ssl_stream = try!(SslStream::connect(&ssl_context, tcp_stream));
+
+        debug!("Connection with {}:{} successfully established.", host, port);
 
         let ssl_stream_rc = Rc::new(RefCell::new(ssl_stream));
 
