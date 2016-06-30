@@ -140,7 +140,7 @@ impl<W> ReceiverChannel<W>
         }
     }
 
-    pub fn launch_app(&self, app_id: String) {
+    pub fn launch_app(&self, app_id: String) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              self.receiver.clone(),
@@ -149,10 +149,10 @@ impl<W> ReceiverChannel<W>
                                                  request_id: 1,
                                                  app_id: app_id,
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn stop_current_app(&self) {
+    pub fn stop_current_app(&self) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              self.receiver.clone(),
@@ -161,10 +161,10 @@ impl<W> ReceiverChannel<W>
                                                  request_id: 1,
                                                  session_id: "FAKE".to_owned(),
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn get_status(&self) {
+    pub fn get_status(&self) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              self.receiver.clone(),
@@ -172,7 +172,7 @@ impl<W> ReceiverChannel<W>
                                                  typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
                                                  request_id: 1,
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
     pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {

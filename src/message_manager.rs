@@ -10,7 +10,7 @@ use errors::Error;
 pub struct MessageManager;
 
 impl MessageManager {
-    pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage)
+    pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage) -> Result<(), Error>
         where W: Write
     {
         let message_content_buffer = utils::to_vec(message).unwrap();
@@ -19,8 +19,10 @@ impl MessageManager {
         utils::write_u32_to_buffer(&mut message_length_buffer,
                                    message_content_buffer.len() as u32);
 
-        writer.write(&message_length_buffer).unwrap();
-        writer.write(&message_content_buffer).unwrap();
+        try!(writer.write(&message_length_buffer));
+        try!(writer.write(&message_content_buffer));
+
+        Ok(())
     }
 
     pub fn receive<T>(reader: &mut T) -> cast_channel::CastMessage

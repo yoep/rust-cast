@@ -43,7 +43,7 @@ impl<W> ConnectionChannel<W>
         }
     }
 
-    pub fn connect(&self, destination: String) {
+    pub fn connect(&self, destination: String) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              destination,
@@ -51,10 +51,10 @@ impl<W> ConnectionChannel<W>
                                                  typ: MESSAGE_TYPE_CONNECT.to_owned(),
                                                  user_agent: CHANNEL_USER_AGENT.to_owned(),
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn disconnect(&self, destination: String) {
+    pub fn disconnect(&self, destination: String) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              destination,
@@ -62,7 +62,7 @@ impl<W> ConnectionChannel<W>
                                                  typ: MESSAGE_TYPE_CLOSE.to_owned(),
                                                  user_agent: CHANNEL_USER_AGENT.to_owned(),
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
     pub fn try_handle(&self,

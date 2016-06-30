@@ -50,23 +50,23 @@ impl<W> HeartbeatChannel<W>
         MessageManager::parse_payload(message)
     }
 
-    pub fn ping(&self) {
+    pub fn ping(&self) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              self.receiver.clone(),
                                              Some(HeartBeatRequest {
                                                  typ: MESSAGE_TYPE_PING.to_owned(),
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn pong(&self) {
+    pub fn pong(&self) -> Result<(), Error> {
         let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                              self.sender.clone(),
                                              self.receiver.clone(),
                                              Some(HeartBeatRequest {
                                                  typ: MESSAGE_TYPE_PONG.to_owned(),
                                              }));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 }

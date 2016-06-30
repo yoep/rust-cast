@@ -117,7 +117,7 @@ impl<W> MediaChannel<W>
     }
 
     pub fn stream<'a, S>(&self, content_id: S, content_type: S, stream_type: StreamType)
-        where S: Into<Cow<'a, str>> {
+        -> Result<(), Error> where S: Into<Cow<'a, str>> {
 
         let stream_type_string = match stream_type {
             StreamType::Unknown => "UNKNOWN",
@@ -145,7 +145,7 @@ impl<W> MediaChannel<W>
                                              self.sender.clone(),
                                              self.receiver.clone(),
                                              Some(media_request));
-        MessageManager::send(&mut *self.writer.borrow_mut(), message);
+        MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
     pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {
