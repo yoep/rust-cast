@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 
 [dependencies]
+byteorder = "0.5.3"
 log = "0.3.6"
 openssl = "0.7.13"
 protobuf = "1.0.22"

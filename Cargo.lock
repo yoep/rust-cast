@@ -2,6 +2,7 @@
 name = "chromecast_link"
 version = "0.2.0"
 dependencies = [
+ "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.7.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 1.0.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -18,6 +19,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bitflags"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "byteorder"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]

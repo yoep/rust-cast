@@ -1,19 +1,19 @@
 use std::io::Cursor;
-use std::mem::transmute;
-use std::ptr::copy_nonoverlapping;
 
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use errors::Error;
 use protobuf;
 
-pub fn read_u32_from_buffer(buffer: &[u8]) -> u32 {
-    unsafe { (*(buffer.as_ptr() as *const u32)).to_be() }
+pub fn read_u32_from_buffer(buffer: &[u8]) -> Result<u32, Error> {
+    Ok(try!(Cursor::new(buffer).read_u32::<BigEndian>()))
 }
 
-pub fn write_u32_to_buffer(buffer: &mut [u8], number: u32) {
-    unsafe {
-        let bytes = transmute::<_, [u8; 4]>(number.to_be());
-        copy_nonoverlapping((&bytes).as_ptr(), buffer.as_mut_ptr(), 4);
-    }
+pub fn write_u32_to_buffer(number: u32) -> Result<Vec<u8>, Error> {
+    let mut buffer = vec![];
+
+    try!(buffer.write_u32::<BigEndian>(number));
+
+    Ok(buffer)
 }
 
 pub fn to_vec<M: protobuf::Message>(message: M) -> Result<Vec<u8>, Error> {

@@ -15,9 +15,8 @@ impl MessageManager {
     {
         let message_content_buffer = utils::to_vec(message).unwrap();
 
-        let mut message_length_buffer: [u8; 4] = [0; 4];
-        utils::write_u32_to_buffer(&mut message_length_buffer,
-                                   message_content_buffer.len() as u32);
+        let message_length_buffer = try!(
+            utils::write_u32_to_buffer(message_content_buffer.len() as u32));
 
         try!(writer.write(&message_length_buffer));
         try!(writer.write(&message_content_buffer));
@@ -28,7 +27,7 @@ impl MessageManager {
     pub fn receive<T>(reader: &mut T) -> cast_channel::CastMessage
         where T: Read
     {
-        let length = MessageManager::receive_length(reader);
+        let length = MessageManager::receive_length(reader).unwrap();
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
         let mut limited_reader = reader.take(length as u64);
@@ -66,11 +65,11 @@ impl MessageManager {
         Ok(try!(serde_json::from_str(message.get_payload_utf8())))
     }
 
-    fn receive_length<T>(reader: &mut T) -> u32
-        where T: Read
+    fn receive_length<T>(reader: &mut T) -> Result<u32, Error> where T: Read
     {
         let mut buffer: [u8; 4] = [0; 4];
-        reader.read_exact(&mut buffer).unwrap();
+        try!(reader.read_exact(&mut buffer));
+
         utils::read_u32_from_buffer(&buffer)
     }
 }
