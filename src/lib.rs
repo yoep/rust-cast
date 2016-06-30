@@ -92,7 +92,7 @@ impl Chromecast {
     }
 
     pub fn receive(&self) -> Result<cast_channel::CastMessage, Error> {
-        let message = MessageManager::receive(&mut *self.stream.borrow_mut());
+        let message = try!(MessageManager::receive(&mut *self.stream.borrow_mut()));
 
         debug!("Message received: {:?}", message);
 

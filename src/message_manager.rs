@@ -10,11 +10,10 @@ use errors::Error;
 pub struct MessageManager;
 
 impl MessageManager {
-    pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage) -> Result<(), Error>
-        where W: Write
+    pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage)
+        -> Result<(), Error> where W: Write
     {
-        let message_content_buffer = utils::to_vec(message).unwrap();
-
+        let message_content_buffer = try!(utils::to_vec(message));
         let message_length_buffer = try!(
             utils::write_u32_to_buffer(message_content_buffer.len() as u32));
 
@@ -24,24 +23,20 @@ impl MessageManager {
         Ok(())
     }
 
-    pub fn receive<T>(reader: &mut T) -> cast_channel::CastMessage
-        where T: Read
+    pub fn receive<T>(reader: &mut T) -> Result<cast_channel::CastMessage, Error> where T: Read
     {
-        let length = MessageManager::receive_length(reader).unwrap();
+        let length = try!(MessageManager::receive_length(reader));
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
         let mut limited_reader = reader.take(length as u64);
-        limited_reader.read_to_end(&mut buffer).unwrap();
 
-        utils::from_vec(buffer.iter().cloned().collect()).unwrap()
+        try!(limited_reader.read_to_end(&mut buffer));
+
+        utils::from_vec(buffer.iter().cloned().collect())
     }
 
-    pub fn create<P>(namespace: String,
-                     sender: String,
-                     receiver: String,
-                     payload: Option<P>)
-                     -> cast_channel::CastMessage
-        where P: serde::Serialize
+    pub fn create<P>(namespace: String, sender: String, receiver: String, payload: Option<P>)
+        -> Result<cast_channel::CastMessage, Error> where P: serde::Serialize
     {
         let mut message = cast_channel::CastMessage::new();
 
@@ -53,14 +48,14 @@ impl MessageManager {
 
         if payload.is_some() {
             message.set_payload_type(cast_channel::CastMessage_PayloadType::STRING);
-            message.set_payload_utf8(serde_json::to_string(&payload.unwrap()).unwrap());
+            message.set_payload_utf8(try!(serde_json::to_string(&payload.unwrap())));
         }
 
-        message
+        Ok(message)
     }
 
-    pub fn parse_payload<P>(message: &cast_channel::CastMessage) -> Result<P, Error>
-        where P: serde::Deserialize
+    pub fn parse_payload<P>(message: &cast_channel::CastMessage)
+        -> Result<P, Error> where P: serde::Deserialize
     {
         Ok(try!(serde_json::from_str(message.get_payload_utf8())))
     }

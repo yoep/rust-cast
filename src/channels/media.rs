@@ -125,7 +125,7 @@ impl<W> MediaChannel<W>
             StreamType::Live => "LIVE",
         };
 
-        let media_request = MediaRequest {
+        let payload = MediaRequest {
             request_id: 1,
             session_id: self.session_id.clone(),
             typ: MESSAGE_TYPE_LOAD.to_owned(),
@@ -141,10 +141,11 @@ impl<W> MediaChannel<W>
             custom_data: CustomData::new(),
         };
 
-        let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                             self.sender.clone(),
-                                             self.receiver.clone(),
-                                             Some(media_request));
+        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
+                                                  self.sender.clone(),
+                                                  self.receiver.clone(),
+                                                  Some(payload)));
+
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 

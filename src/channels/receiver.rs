@@ -141,37 +141,46 @@ impl<W> ReceiverChannel<W>
     }
 
     pub fn launch_app(&self, app_id: String) -> Result<(), Error> {
-        let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                             self.sender.clone(),
-                                             self.receiver.clone(),
-                                             Some(AppLaunchRequest {
-                                                 typ: MESSAGE_TYPE_LAUNCH.to_owned(),
-                                                 request_id: 1,
-                                                 app_id: app_id,
-                                             }));
+        let payload = AppLaunchRequest {
+            typ: MESSAGE_TYPE_LAUNCH.to_owned(),
+            request_id: 1,
+            app_id: app_id,
+        };
+
+        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
+                                                  self.sender.clone(),
+                                                  self.receiver.clone(),
+                                                  Some(payload)));
+
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
     pub fn stop_current_app(&self) -> Result<(), Error> {
-        let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                             self.sender.clone(),
-                                             self.receiver.clone(),
-                                             Some(AppStopRequest {
-                                                 typ: MESSAGE_TYPE_STOP.to_owned(),
-                                                 request_id: 1,
-                                                 session_id: "FAKE".to_owned(),
-                                             }));
+        let payload = AppStopRequest {
+            typ: MESSAGE_TYPE_STOP.to_owned(),
+            request_id: 1,
+            session_id: "FAKE".to_owned(),
+        };
+
+        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
+                                                  self.sender.clone(),
+                                                  self.receiver.clone(),
+                                                  Some(payload)));
+
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
     pub fn get_status(&self) -> Result<(), Error> {
-        let message = MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                             self.sender.clone(),
-                                             self.receiver.clone(),
-                                             Some(GetStatusRequest {
-                                                 typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
-                                                 request_id: 1,
-                                             }));
+        let payload = GetStatusRequest {
+            typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
+            request_id: 1,
+        };
+
+        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
+                                                  self.sender.clone(),
+                                                  self.receiver.clone(),
+                                                  Some(payload)));
+
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
