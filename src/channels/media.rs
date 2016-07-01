@@ -15,6 +15,7 @@ const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.media";
 const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 
 const REPLY_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
+const REPLY_TYPE_LOAD_CANCELLED: &'static str = "LOAD_CANCELLED";
 
 pub enum StreamType {
     None,
@@ -28,7 +29,7 @@ pub struct MediaRequest<'a> {
     pub request_id: i32,
 
     #[serde(rename="sessionId")]
-    pub session_id: String,
+    pub session_id: Cow<'a, str>,
 
     #[serde(rename="type")]
     pub typ: String,
@@ -71,7 +72,7 @@ impl CustomData {
 #[derive(Deserialize, Debug)]
 pub struct MediaStatus<'a> {
     #[serde(default)]
-    media: Option<Media<'a>>,
+    pub media: Option<Media<'a>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -85,39 +86,37 @@ pub struct MediaStatusReply<'a> {
     pub status: MediaStatus<'a>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct LoadCancelledReply {
+    #[serde(rename="requestId")]
+    pub request_id: i32,
+
+    #[serde(rename="type")]
+    typ: String,
+}
+
 #[derive(Debug)]
 pub enum Reply<'a> {
     MediaStatus(MediaStatusReply<'a>),
+    LoadCancelled(LoadCancelledReply),
     Unknown,
 }
 
-pub struct MediaChannel<W>
-    where W: Write
-{
+pub struct MediaChannel<W> where W: Write {
     sender: String,
-    receiver: String,
-    session_id: String,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> MediaChannel<W>
-    where W: Write
-{
-    pub fn new(sender: String,
-               receiver: String,
-               session_id: String,
-               writer: Rc<RefCell<W>>)
-               -> MediaChannel<W> {
+impl<W> MediaChannel<W> where W: Write {
+    pub fn new(sender: String, writer: Rc<RefCell<W>>) -> MediaChannel<W> {
         MediaChannel {
             sender: sender,
-            receiver: receiver,
-            session_id: session_id,
             writer: writer,
         }
     }
 
-    pub fn load<'a, S>(&self, content_id: S, content_type: S, stream_type: StreamType)
-        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    pub fn load<'a, S>(&self, receiver: S, session_id: S, content_id: S, content_type: S,
+                       stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
 
         let stream_type_string = match stream_type {
             StreamType::None => "NONE",
@@ -127,7 +126,7 @@ impl<W> MediaChannel<W>
 
         let payload = MediaRequest {
             request_id: 1,
-            session_id: self.session_id.clone(),
+            session_id: session_id.into(),
             typ: MESSAGE_TYPE_LOAD.to_owned(),
 
             media: Media {
@@ -143,7 +142,7 @@ impl<W> MediaChannel<W>
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                                   self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  receiver.into().to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
@@ -156,13 +155,16 @@ impl<W> MediaChannel<W>
 
         let reply: Value = try!(MessageManager::parse_payload(message));
 
-        let message_type = {
-            let reply_object_value = reply.as_object().unwrap();
-            reply_object_value.get("type").unwrap().as_string().unwrap().to_owned()
+        let message_type = match reply.as_object()
+            .and_then(|object| object.get("type"))
+            .and_then(|property| property.as_string()) {
+            None => return Err(Error::Internal("Unexpected reply format".to_owned())),
+            Some(string) => string.to_owned()
         };
 
         let reply = match &message_type as &str {
-            REPLY_TYPE_MEDIA_STATUS => Reply::MediaStatus(from_value(reply).unwrap()),
+            REPLY_TYPE_MEDIA_STATUS => Reply::MediaStatus(try!(from_value(reply))),
+            REPLY_TYPE_LOAD_CANCELLED => Reply::LoadCancelled(try!(from_value(reply))),
             _ => Reply::Unknown,
         };
 

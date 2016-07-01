@@ -231,14 +231,16 @@ impl<W> ReceiverChannel<W>
 
         let reply: Value = try!(MessageManager::parse_payload(message));
 
-        let message_type = {
-            let reply_object_value = reply.as_object().unwrap();
-            reply_object_value.get("type").unwrap().as_string().unwrap().to_owned()
+        let message_type = match reply.as_object()
+            .and_then(|object| object.get("type"))
+            .and_then(|property| property.as_string()) {
+            None => return Err(Error::Internal("Unexpected reply format".to_owned())),
+            Some(string) => string.to_owned()
         };
 
         let reply = match &message_type as &str {
-            REPLY_TYPE_RECEIVER_STATUS => Reply::Status(from_value(reply).unwrap()),
-            REPLY_TYPE_LAUNCH_ERROR => Reply::LaunchError(from_value(reply).unwrap()),
+            REPLY_TYPE_RECEIVER_STATUS => Reply::Status(try!(from_value(reply))),
+            REPLY_TYPE_LAUNCH_ERROR => Reply::LaunchError(try!(from_value(reply))),
             _ => Reply::Unknown,
         };
 

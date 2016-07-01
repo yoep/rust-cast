@@ -1,5 +1,9 @@
 [![Build Status](https://travis-ci.org/azasypkin/chromecast-link.svg?branch=master)](https://travis-ci.org/azasypkin/chromecast-link)
 
+# Usage
+
+Try out [Chromecast Link Tool](https://github.com/azasypkin/chromecast-link-tool)!
+
 # DNS TXT Record description
 
 * `md` - Model Name (e.g. "Chromecast");
