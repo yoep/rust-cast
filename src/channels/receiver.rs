@@ -1,9 +1,9 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::string::ToString;
-
 use serde_json::Value;
 use serde_json::value::from_value;
 
@@ -37,7 +37,7 @@ struct AppLaunchRequest {
 }
 
 #[derive(Serialize, Debug)]
-struct AppStopRequest {
+struct AppStopRequest<'a> {
     #[serde(rename="requestId")]
     pub request_id: i32,
 
@@ -45,7 +45,7 @@ struct AppStopRequest {
     pub typ: String,
 
     #[serde(rename="sessionId")]
-    pub session_id: String,
+    pub session_id: Cow<'a, str>,
 }
 
 #[derive(Serialize, Debug)]
@@ -127,7 +127,7 @@ pub enum Reply {
     Unknown,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ChromecastApp {
     DefaultMediaReceiver,
     Backdrop,
@@ -195,11 +195,11 @@ impl<W> ReceiverChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn stop_current_app(&self) -> Result<(), Error> {
+    pub fn stop_app<'a, S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = AppStopRequest {
             typ: MESSAGE_TYPE_STOP.to_owned(),
             request_id: 1,
-            session_id: "FAKE".to_owned(),
+            session_id: session_id.into(),
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),

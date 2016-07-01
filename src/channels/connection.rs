@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -43,7 +44,7 @@ impl<W> ConnectionChannel<W>
         }
     }
 
-    pub fn connect(&self, destination: String) -> Result<(), Error> {
+    pub fn connect<'a, S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = ConnectionRequest {
             typ: MESSAGE_TYPE_CONNECT.to_owned(),
             user_agent: CHANNEL_USER_AGENT.to_owned(),
@@ -51,7 +52,7 @@ impl<W> ConnectionChannel<W>
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
                                                   self.sender.clone(),
-                                                  destination,
+                                                  destination.into().to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)

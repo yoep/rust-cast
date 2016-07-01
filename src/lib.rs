@@ -16,6 +16,7 @@ mod message_manager;
 pub mod channels;
 
 use std::cell::RefCell;
+use std::borrow::Cow;
 use std::net::TcpStream;
 use std::rc::Rc;
 
@@ -75,11 +76,11 @@ impl Chromecast {
         Ok(try!(MessageManager::receive(&mut *self.stream.borrow_mut())))
     }
 
-    pub fn create_media_channel(&self, receiver: String, session_id: String)
-        -> Result<MediaChannel<SslStream<TcpStream>>, Error> {
+    pub fn create_media_channel<'a, S>(&self, receiver: S, session_id: S)
+        -> Result<MediaChannel<SslStream<TcpStream>>, Error> where S: Into<Cow<'a, str>> {
         Ok(MediaChannel::new(DEFAULT_SENDER_ID.to_owned(),
-                             receiver,
-                             session_id,
+                             receiver.into().to_string(),
+                             session_id.into().to_string(),
                              self.stream.clone()))
     }
 }
