@@ -17,7 +17,7 @@ const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 const REPLY_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
 
 pub enum StreamType {
-    Unknown,
+    None,
     Buffered,
     Live,
 }
@@ -116,11 +116,11 @@ impl<W> MediaChannel<W>
         }
     }
 
-    pub fn stream<'a, S>(&self, content_id: S, content_type: S, stream_type: StreamType)
+    pub fn load<'a, S>(&self, content_id: S, content_type: S, stream_type: StreamType)
         -> Result<(), Error> where S: Into<Cow<'a, str>> {
 
         let stream_type_string = match stream_type {
-            StreamType::Unknown => "UNKNOWN",
+            StreamType::None => "NONE",
             StreamType::Buffered => "BUFFERED",
             StreamType::Live => "LIVE",
         };
