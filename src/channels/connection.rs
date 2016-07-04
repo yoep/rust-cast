@@ -27,42 +27,43 @@ pub struct ConnectionResponse {
     pub typ: String,
 }
 
-pub struct ConnectionChannel<W> where W: Write {
-    sender: String,
+pub struct ConnectionChannel<'a, W> where W: Write {
+    sender: Cow<'a, str>,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> ConnectionChannel<W> where W: Write {
-    pub fn new(sender: String, writer: Rc<RefCell<W>>) -> ConnectionChannel<W> {
+impl<'a, W> ConnectionChannel<'a, W> where W: Write {
+    pub fn new<S>(sender: S, writer: Rc<RefCell<W>>)
+        -> ConnectionChannel<'a, W> where S: Into<Cow<'a, str>> {
         ConnectionChannel {
-            sender: sender,
+            sender: sender.into(),
             writer: writer,
         }
     }
 
-    pub fn connect<'a, S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = ConnectionRequest {
             typ: MESSAGE_TYPE_CONNECT.to_owned(),
             user_agent: CHANNEL_USER_AGENT.to_owned(),
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
+                                                  self.sender.to_string(),
                                                   destination.into().to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn disconnect(&self, destination: String) -> Result<(), Error> {
+    pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = ConnectionRequest {
             typ: MESSAGE_TYPE_CLOSE.to_owned(),
             user_agent: CHANNEL_USER_AGENT.to_owned(),
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  destination,
+                                                  self.sender.to_string(),
+                                                  destination.into().to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)

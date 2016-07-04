@@ -102,21 +102,22 @@ pub enum MediaResponse<'a> {
     Unknown,
 }
 
-pub struct MediaChannel<W> where W: Write {
-    sender: String,
+pub struct MediaChannel<'a, W> where W: Write {
+    sender: Cow<'a, str>,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> MediaChannel<W> where W: Write {
-    pub fn new(sender: String, writer: Rc<RefCell<W>>) -> MediaChannel<W> {
+impl<'a, W> MediaChannel<'a, W> where W: Write {
+    pub fn new<S>(sender: S, writer: Rc<RefCell<W>>)
+        -> MediaChannel<'a, W> where S: Into<Cow<'a, str>> {
         MediaChannel {
-            sender: sender,
+            sender: sender.into(),
             writer: writer,
         }
     }
 
-    pub fn load<'a, S>(&self, receiver: S, session_id: S, content_id: S, content_type: S,
-                       stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    pub fn load<S>(&self, receiver: S, session_id: S, content_id: S, content_type: S,
+                   stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
 
         let stream_type_string = match stream_type {
             StreamType::None => "NONE",
@@ -141,7 +142,7 @@ impl<W> MediaChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
+                                                  self.sender.to_string(),
                                                   receiver.into().to_string(),
                                                   Some(payload)));
 

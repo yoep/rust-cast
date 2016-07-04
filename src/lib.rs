@@ -15,6 +15,7 @@ mod utils;
 mod message_manager;
 pub mod channels;
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::net::TcpStream;
 use std::rc::Rc;
@@ -40,17 +41,20 @@ pub enum ChannelMessage<'a> {
     Receiver(ReceiverResponse),
 }
 
-pub struct Chromecast {
+pub struct Chromecast<'a> {
     stream: Rc<RefCell<SslStream<TcpStream>>>,
 
-    pub heartbeat: HeartbeatChannel<SslStream<TcpStream>>,
-    pub connection: ConnectionChannel<SslStream<TcpStream>>,
-    pub receiver: ReceiverChannel<SslStream<TcpStream>>,
-    pub media: MediaChannel<SslStream<TcpStream>>,
+    pub connection: ConnectionChannel<'a, SslStream<TcpStream>>,
+    pub heartbeat: HeartbeatChannel<'a, SslStream<TcpStream>>,
+    pub media: MediaChannel<'a, SslStream<TcpStream>>,
+    pub receiver: ReceiverChannel<'a, SslStream<TcpStream>>,
 }
 
-impl Chromecast {
-    pub fn connect(host: String, port: u16) -> Result<Chromecast, Error> {
+impl<'a> Chromecast<'a> {
+    pub fn connect<S>(host: S, port: u16)
+        -> Result<Chromecast<'a>, Error> where S: Into<Cow<'a, str>> {
+        let host = host.into();
+
         debug!("Establishing connection with Chromecast at {}:{}...", host, port);
 
         let ssl_context = try!(SslContext::new(SslMethod::Sslv23));
@@ -61,15 +65,12 @@ impl Chromecast {
 
         let ssl_stream_rc = Rc::new(RefCell::new(ssl_stream));
 
-        let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID.to_owned(),
-                                              DEFAULT_RECEIVER_ID.to_owned(),
+        let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
                                               ssl_stream_rc.clone());
-        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID.to_owned(),
-                                                ssl_stream_rc.clone());
-        let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID.to_owned(),
-                                            DEFAULT_RECEIVER_ID.to_owned(),
+        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, ssl_stream_rc.clone());
+        let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
                                             ssl_stream_rc.clone());
-        let media = MediaChannel::new(DEFAULT_SENDER_ID.to_owned(), ssl_stream_rc.clone());
+        let media = MediaChannel::new(DEFAULT_SENDER_ID, ssl_stream_rc.clone());
 
         Ok(Chromecast {
             stream: ssl_stream_rc,

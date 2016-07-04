@@ -161,17 +161,18 @@ impl ToString for ChromecastApp {
     }
 }
 
-pub struct ReceiverChannel<W> where W: Write {
-    sender: String,
-    receiver: String,
+pub struct ReceiverChannel<'a, W> where W: Write {
+    sender: Cow<'a, str>,
+    receiver: Cow<'a, str>,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> ReceiverChannel<W> where W: Write {
-    pub fn new(sender: String, receiver: String, writer: Rc<RefCell<W>>) -> ReceiverChannel<W> {
+impl<'a, W> ReceiverChannel<'a, W> where W: Write {
+    pub fn new<S>(sender: S, receiver: S, writer: Rc<RefCell<W>>)
+        -> ReceiverChannel<'a, W> where S: Into<Cow<'a, str>> {
         ReceiverChannel {
-            sender: sender,
-            receiver: receiver,
+            sender: sender.into(),
+            receiver: receiver.into(),
             writer: writer,
         }
     }
@@ -184,14 +185,14 @@ impl<W> ReceiverChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  self.sender.to_string(),
+                                                  self.receiver.to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn stop_app<'a, S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = AppStopRequest {
             typ: MESSAGE_TYPE_STOP.to_owned(),
             request_id: 1,
@@ -199,8 +200,8 @@ impl<W> ReceiverChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  self.sender.to_string(),
+                                                  self.receiver.to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
@@ -213,8 +214,8 @@ impl<W> ReceiverChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  self.sender.to_string(),
+                                                  self.receiver.to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -23,17 +24,18 @@ pub struct HeartbeatResponse {
     pub typ: String,
 }
 
-pub struct HeartbeatChannel<W> where W: Write {
-    sender: String,
-    receiver: String,
+pub struct HeartbeatChannel<'a, W> where W: Write {
+    sender: Cow<'a, str>,
+    receiver: Cow<'a, str>,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> HeartbeatChannel<W> where W: Write {
-    pub fn new(sender: String, receiver: String, writer: Rc<RefCell<W>>) -> HeartbeatChannel<W> {
+impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
+    pub fn new<S>(sender: S, receiver: S, writer: Rc<RefCell<W>>)
+        -> HeartbeatChannel<'a, W> where S: Into<Cow<'a, str>> {
         HeartbeatChannel {
-            sender: sender,
-            receiver: receiver,
+            sender: sender.into(),
+            receiver: receiver.into(),
             writer: writer,
         }
     }
@@ -44,8 +46,8 @@ impl<W> HeartbeatChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  self.sender.to_string(),
+                                                  self.receiver.to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
@@ -57,8 +59,8 @@ impl<W> HeartbeatChannel<W> where W: Write {
         };
 
         let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.clone(),
-                                                  self.receiver.clone(),
+                                                  self.sender.to_string(),
+                                                  self.receiver.to_string(),
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
