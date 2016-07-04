@@ -23,31 +23,19 @@ pub struct HeartbeatResponse {
     pub typ: String,
 }
 
-pub struct HeartbeatChannel<W>
-    where W: Write
-{
+pub struct HeartbeatChannel<W> where W: Write {
     sender: String,
     receiver: String,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> HeartbeatChannel<W>
-    where W: Write
-{
+impl<W> HeartbeatChannel<W> where W: Write {
     pub fn new(sender: String, receiver: String, writer: Rc<RefCell<W>>) -> HeartbeatChannel<W> {
         HeartbeatChannel {
             sender: sender,
             receiver: receiver,
             writer: writer,
         }
-    }
-
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, Error> {
-        if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
-        }
-
-        MessageManager::parse_payload(message)
     }
 
     pub fn ping(&self) -> Result<(), Error> {
@@ -74,5 +62,13 @@ impl<W> HeartbeatChannel<W>
                                                   Some(payload)));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
+    }
+
+    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
+        message.get_namespace() == CHANNEL_NAMESPACE
+    }
+
+    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, Error> {
+        MessageManager::parse_payload(message)
     }
 }

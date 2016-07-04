@@ -121,7 +121,7 @@ pub struct LaunchErrorReply {
 }
 
 #[derive(Debug)]
-pub enum Reply {
+pub enum ReceiverResponse {
     Status(StatusReply),
     LaunchError(LaunchErrorReply),
     Unknown,
@@ -161,17 +161,13 @@ impl ToString for ChromecastApp {
     }
 }
 
-pub struct ReceiverChannel<W>
-    where W: Write
-{
+pub struct ReceiverChannel<W> where W: Write {
     sender: String,
     receiver: String,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> ReceiverChannel<W>
-    where W: Write
-{
+impl<W> ReceiverChannel<W> where W: Write {
     pub fn new(sender: String, receiver: String, writer: Rc<RefCell<W>>) -> ReceiverChannel<W> {
         ReceiverChannel {
             sender: sender,
@@ -224,11 +220,11 @@ impl<W> ReceiverChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {
-        if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
-        }
+    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
+        message.get_namespace() == CHANNEL_NAMESPACE
+    }
 
+    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ReceiverResponse, Error> {
         let reply: Value = try!(MessageManager::parse_payload(message));
 
         let message_type = match reply.as_object()
@@ -239,9 +235,9 @@ impl<W> ReceiverChannel<W>
         };
 
         let reply = match &message_type as &str {
-            REPLY_TYPE_RECEIVER_STATUS => Reply::Status(try!(from_value(reply))),
-            REPLY_TYPE_LAUNCH_ERROR => Reply::LaunchError(try!(from_value(reply))),
-            _ => Reply::Unknown,
+            REPLY_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(try!(from_value(reply))),
+            REPLY_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(try!(from_value(reply))),
+            _ => ReceiverResponse::Unknown,
         };
 
         Ok(reply)

@@ -1,13 +1,13 @@
 [package]
 name = "chromecast_link"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 
 [dependencies]
 byteorder = "0.5.3"
 log = "0.3.6"
-openssl = "0.7.13"
+openssl = "0.7.14"
 protobuf = "1.0.22"
-serde = "0.7.11"
+serde = "0.7.12"
 serde_json = "0.7.4"
-serde_macros = "0.7.11"
+serde_macros = "0.7.12"

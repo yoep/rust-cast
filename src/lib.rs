@@ -21,12 +21,10 @@ use std::rc::Rc;
 
 use openssl::ssl::{SslContext, SslStream, SslMethod};
 
-use cast::cast_channel;
-
-use channels::heartbeat::HeartbeatChannel;
-use channels::connection::ConnectionChannel;
-use channels::receiver::ReceiverChannel;
-use channels::media::MediaChannel;
+use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
+use channels::connection::{ConnectionChannel, ConnectionResponse};
+use channels::receiver::{ReceiverChannel, ReceiverResponse};
+use channels::media::{MediaChannel, MediaResponse};
 
 use errors::Error;
 
@@ -34,6 +32,13 @@ use message_manager::MessageManager;
 
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
+
+pub enum ChannelMessage<'a> {
+    Connection(ConnectionResponse),
+    Hearbeat(HeartbeatResponse),
+    Media(MediaResponse<'a>),
+    Receiver(ReceiverResponse),
+}
 
 pub struct Chromecast {
     stream: Rc<RefCell<SslStream<TcpStream>>>,
@@ -75,7 +80,26 @@ impl Chromecast {
         })
     }
 
-    pub fn receive(&self) -> Result<cast_channel::CastMessage, Error> {
-        Ok(try!(MessageManager::receive(&mut *self.stream.borrow_mut())))
+    pub fn receive(&self) -> Result<ChannelMessage, Error> {
+        let cast_message = try!(MessageManager::receive(&mut *self.stream.borrow_mut()));
+
+        if self.connection.can_handle(&cast_message) {
+            return Ok(ChannelMessage::Connection(try!(self.connection.parse(&cast_message))));
+        }
+
+        if self.heartbeat.can_handle(&cast_message) {
+            return Ok(ChannelMessage::Hearbeat(try!(self.heartbeat.parse(&cast_message))));
+        }
+
+        if self.media.can_handle(&cast_message) {
+            return Ok(ChannelMessage::Media(try!(self.media.parse(&cast_message))));
+        }
+
+        if self.receiver.can_handle(&cast_message) {
+            return Ok(ChannelMessage::Receiver(try!(self.receiver.parse(&cast_message))));
+        }
+
+        Err(Error::Internal(
+            format!("Unsupported message namespace: {}", cast_message.get_namespace())))
     }
 }

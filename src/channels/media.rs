@@ -83,7 +83,7 @@ pub struct MediaStatusReply<'a> {
     #[serde(rename="type")]
     pub typ: String,
 
-    pub status: MediaStatus<'a>,
+    pub status: Vec<MediaStatus<'a>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -96,7 +96,7 @@ pub struct LoadCancelledReply {
 }
 
 #[derive(Debug)]
-pub enum Reply<'a> {
+pub enum MediaResponse<'a> {
     MediaStatus(MediaStatusReply<'a>),
     LoadCancelled(LoadCancelledReply),
     Unknown,
@@ -148,11 +148,11 @@ impl<W> MediaChannel<W> where W: Write {
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn try_handle(&self, message: &cast_channel::CastMessage) -> Result<Reply, Error> {
-        if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
-        }
+    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
+        message.get_namespace() == CHANNEL_NAMESPACE
+    }
 
+    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<MediaResponse, Error> {
         let reply: Value = try!(MessageManager::parse_payload(message));
 
         let message_type = match reply.as_object()
@@ -163,9 +163,9 @@ impl<W> MediaChannel<W> where W: Write {
         };
 
         let reply = match &message_type as &str {
-            REPLY_TYPE_MEDIA_STATUS => Reply::MediaStatus(try!(from_value(reply))),
-            REPLY_TYPE_LOAD_CANCELLED => Reply::LoadCancelled(try!(from_value(reply))),
-            _ => Reply::Unknown,
+            REPLY_TYPE_MEDIA_STATUS => MediaResponse::MediaStatus(try!(from_value(reply))),
+            REPLY_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled(try!(from_value(reply))),
+            _ => MediaResponse::Unknown,
         };
 
         Ok(reply)

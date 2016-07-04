@@ -27,16 +27,12 @@ pub struct ConnectionResponse {
     pub typ: String,
 }
 
-pub struct ConnectionChannel<W>
-    where W: Write
-{
+pub struct ConnectionChannel<W> where W: Write {
     sender: String,
     writer: Rc<RefCell<W>>,
 }
 
-impl<W> ConnectionChannel<W>
-    where W: Write
-{
+impl<W> ConnectionChannel<W> where W: Write {
     pub fn new(sender: String, writer: Rc<RefCell<W>>) -> ConnectionChannel<W> {
         ConnectionChannel {
             sender: sender,
@@ -72,13 +68,11 @@ impl<W> ConnectionChannel<W>
         MessageManager::send(&mut *self.writer.borrow_mut(), message)
     }
 
-    pub fn try_handle(&self,
-                      message: &cast_channel::CastMessage)
-                      -> Result<ConnectionResponse, Error> {
-        if message.get_namespace() != CHANNEL_NAMESPACE {
-            return Err(Error::Internal("Channel does not support provided message.".to_owned()));
-        }
+    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
+        message.get_namespace() == CHANNEL_NAMESPACE
+    }
 
+    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ConnectionResponse, Error> {
         MessageManager::parse_payload(message)
     }
 }
