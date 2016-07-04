@@ -50,7 +50,7 @@ pub struct Media<'a> {
     #[serde(rename="contentId")]
     pub content_id: Cow<'a, str>,
 
-    #[serde(rename="streamType")]
+    #[serde(rename="streamType", default)]
     pub stream_type: Cow<'a, str>,
 
     #[serde(rename="contentType")]
@@ -77,7 +77,7 @@ pub struct MediaStatus<'a> {
 
 #[derive(Deserialize, Debug)]
 pub struct MediaStatusReply<'a> {
-    #[serde(rename="requestId")]
+    #[serde(rename="requestId", default)]
     pub request_id: i32,
 
     #[serde(rename="type")]
