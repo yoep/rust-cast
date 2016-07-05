@@ -1,3 +1,4 @@
+#![doc(html_root_url = "https://azasypkin.github.io/rust-cast/")]
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
 
