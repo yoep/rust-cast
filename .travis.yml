@@ -16,7 +16,7 @@ notifications:
 branches:
   only:
   - master
-after_success: |
+after_success: |-
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
   [ $(uname -s) = Linux ] &&
@@ -27,4 +27,4 @@ after_success: |
   git push -qf https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
 env:
   global:
-  - secure: Z6XpYFIhaXHX98gfeqEZ5P643JjUs4SxSqXEdGHFeKmxcMtxTGFStOEdf3usVFD5NeL32qGLro4g8Hx+nPAAzdFPTIpyXwWLaChP9ARkmMFGO7dpro0mxyBtNrglVjVM6yY5sviD8QCA8EB5GhwF5X0Z1G/5+GpyqG2KlQ/8ETkFhBQ5RJwUcTwtQ8OvtI+PwECPW47zao0xEJYlj3wTbguNLT8h9Kj3h9XHFZr5KrrfE8mrqQaYFoMab1BD/RcxQEDpKfvQC4CAmdoEZQnAukvHtt8L2vXEsI7zY0NMDxyXTsRkFmSuJInkvThOPAvFUYEN1GN4tpJY8LuS8OS1/c2CsqhltReDKD4ONkZukoH53mo1oz/fNDqKWlUMGkW+DYHbgccqHC1iPsG34qNoIPjkbKyIpduzTdeccOIO/DZobbwZp7Omw9kUjjOy7aRgn5Ba4EieEM7VHOhby3jMfFCsBhZ6YmzJvmvgoBt5GsIZsx24GTAsu8svamCGjwLaF15i7uMrpSsIEMHZ/LNw5kVbCLuDUYqz+jtwCyV3C5P3X3avVyINvRyfTqOpfmtB2692wIenKU0yMApLGBPjCWJbMPAc5NYurZAdtfdQqQkU4cFf3bV8+EP1Xb9Eth4eri+GyGhMT+3blqn5XHaXDRqwEFi9wF2pZsKvwQyhODI=
+    secure: p23O1FUQwvppTiT6CEA0mkM4nC8EmMTUSLpCMjlgb4EqxblX2Oc4dWlSCc60PJ5ZNGiAux8N/VmkyxufNW+I2z/VgPZecnj9x4a0lL733kUHqzQB2fiDCUyBNV96SsNquDPpow8H0R6JDje4w0BZkAUx4JqX5THsVxlaGVd/Tsyo8Bkisebbyay4Aw6EmoBnuHZXfjEKq5tIR9KCbpQdsOUKXFBJVjhby7Dgo+UPL084vUvUOO60RE7CNMxwTzyF6vYWWbai1rSfAzFL/rBtEuG2ddcgmRNt6iRgA8s4fDL1q4bgN+9mQd2dCeJp8nG1BIysvg5YuOAfVeXJy8Fe9kaDCqW5k9eet5fFdckTGrZ2oZ6UWu94bWwFUQGsk7T8+fCUJGSZ6URTh3uYg6fzOYVR85uxyPW8gIYR2uxoFMHraLidRzxtQqnpLNCm4UHoINCOMLNglI+tHmgtbqWBp0wgswaR9cF0zrCkeW8R9tQkZ9kTAcxk9xPoUE7smK58XY6f8m4nvUhckzsBLT4Q8hC4CHbO51JleTefgm1NfE3nQ4DOJ/QPVoG1YBxEyRFtLrFAHsIY64wixYjFqdcjnShSkgFqv+qENGQZUHzQdGt+gSeJmJOuO41K/8IqsGkBPy+CgsDOMwRSyXdcm148UWKcFNcJRXffXhPyBMf4RYA=
