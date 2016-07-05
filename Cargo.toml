@@ -1,5 +1,12 @@
 [package]
 name = "rust_cast"
+description = "Library that allows you to communicate with Google Cast enabled devices (eg. Chromecast)."
+documentation = "https://azasypkin.github.io/rust-cast/"
+homepage = "https://github.com/azasypkin/rust-cast"
+repository = "https://github.com/azasypkin/rust-cast"
+readme = "README.md"
+license = "MIT"
+keywords = ["cast", "chromecast", "google cast"]
 version = "0.3.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 
