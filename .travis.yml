@@ -1,23 +1,28 @@
 language: rust
 rust:
-  - nightly
-
+- nightly
 cache:
   directories:
-    - $HOME/.cargo
-    - $TRAVIS_BUILD_DIR/target
-
+  - "$HOME/.cargo"
+  - "$TRAVIS_BUILD_DIR/target"
 script:
-  - cargo build
-
+- cargo build
 os:
-  - linux
-  - osx
-
+- linux
+- osx
 notifications:
   email:
     on_success: never
-
 branches:
   only:
-    - master
+  - master
+after_success: |
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  [ $(uname -s) = Linux ] &&
+  pip install ghp-import --user $USER &&
+  $HOME/.local/bin/ghp-import -n target/doc &&
+  git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+env:
+  global:
+    secure: evgctNURxpEIHi/tM2q0bIyvzJ5RynS5uwK08e0eK5ObWGf+EHKD1M5ws9YNSfQ2pEo6RPDZS38dt3hWTBsn7c3tUt3No0NeTjRouAOgJT/itTDmZbo8DRi5Y2afVyQFE2dEHxbt2w8uMkuVu128GGPZtikwDfw/ubz55cYw86rp4cNcRRlMemVNKQto2taQz1Sa3mLDw9GGDjzyJTbHAj0hY/82kE4ECu22w2E/ruprz3ErJGaGNYjdbn9ywr3MpTrcN1RPsDETKhNTasAtGItFSs55jdCJOrLpbw65m+AFw/+0Vj506n/8C9NMCht8QDVBVkLFS2X7tdkimB//QvTNl2Kfn6/nr9AHNyrOucWBZM6fDQpmHh6/S5wmWM8nd/AxxBwDXnUBJxex/S+JbKMecwOT1OJes1Vgr1NSKgaE2KLyja0rsvTW9eVF4ovZZiHkxiSAvB+3J1S9Bdk5qWMwQyp0mnUZm2WefG2FDpGDUQFKfr4ACtnyJyYKopzcNt3Cl+Y1sSRaCWdIzC6D9+ZtGOe16MC37yvFv5+wrVX/rli8q13UZcNXftxC2jyjikrczGiwAr04bPfoR/3DIaNnBXKlx8wpb4thVTsDN4DZjULE3imPzFJe9i+SVzSZecqAyvDAIpPrUjKLpMJxBpFJC/ByeqD5rFedymcfnmw=
