@@ -1,8 +1,8 @@
-[![Build Status](https://travis-ci.org/azasypkin/chromecast-link.svg?branch=master)](https://travis-ci.org/azasypkin/chromecast-link)
+[![Build Status](https://travis-ci.org/azasypkin/rust-cast.svg?branch=master)](https://travis-ci.org/azasypkin/rust-cast)
 
 # Usage
 
-Try out [Chromecast Link Tool](https://github.com/azasypkin/chromecast-link-tool)!
+Try out [Rust Caster](https://github.com/azasypkin/rust-caster) to see this crate in action!
 
 # DNS TXT Record description
 
@@ -16,14 +16,12 @@ Try out [Chromecast Link Tool](https://github.com/azasypkin/chromecast-link-tool
 * `ic` - Icon path (e.g. "/setup/icon.png");
 * `ve` - Version (e.g. "04").
 
-
 # Model names
 
 * `Chromecast` - Regular chromecast, supports video/audio;
 * `Chromecast Audio` - Chromecast Audio device, supports only audio.
 
-
-# Useful links
+# Useful links and sources of inspiration
 
 * [DIAL Protocol](http://www.dial-multiscreen.org/);
 * [An implementation of the Chromecast CASTV2 protocol in JS](https://github.com/thibauts/node-castv2);

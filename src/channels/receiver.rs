@@ -128,35 +128,35 @@ pub enum ReceiverResponse {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ChromecastApp {
+pub enum CastDeviceApp {
     DefaultMediaReceiver,
     Backdrop,
     YouTube,
     Custom(String),
 }
 
-impl FromStr for ChromecastApp {
+impl FromStr for CastDeviceApp {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<ChromecastApp, ()> {
+    fn from_str(s: &str) -> Result<CastDeviceApp, ()> {
         let app = match s {
-            APP_DEFAULT_MEDIA_RECEIVER_ID | "default" => ChromecastApp::DefaultMediaReceiver,
-            APP_BACKDROP_ID | "backdrop" => ChromecastApp::Backdrop,
-            APP_YOUTUBE_ID | "youtube" => ChromecastApp::YouTube,
-            custom @ _ => ChromecastApp::Custom(custom.to_owned())
+            APP_DEFAULT_MEDIA_RECEIVER_ID | "default" => CastDeviceApp::DefaultMediaReceiver,
+            APP_BACKDROP_ID | "backdrop" => CastDeviceApp::Backdrop,
+            APP_YOUTUBE_ID | "youtube" => CastDeviceApp::YouTube,
+            custom @ _ => CastDeviceApp::Custom(custom.to_owned())
         };
 
         Ok(app)
     }
 }
 
-impl ToString for ChromecastApp {
+impl ToString for CastDeviceApp {
     fn to_string(&self) -> String {
         match *self {
-            ChromecastApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_owned(),
-            ChromecastApp::Backdrop => APP_BACKDROP_ID.to_owned(),
-            ChromecastApp::YouTube => APP_YOUTUBE_ID.to_owned(),
-            ChromecastApp::Custom(ref app_id) => app_id.to_owned(),
+            CastDeviceApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_owned(),
+            CastDeviceApp::Backdrop => APP_BACKDROP_ID.to_owned(),
+            CastDeviceApp::YouTube => APP_YOUTUBE_ID.to_owned(),
+            CastDeviceApp::Custom(ref app_id) => app_id.to_owned(),
         }
     }
 }
@@ -177,7 +177,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
         }
     }
 
-    pub fn launch_app(&self, app: ChromecastApp) -> Result<(), Error> {
+    pub fn launch_app(&self, app: CastDeviceApp) -> Result<(), Error> {
         let payload = AppLaunchRequest {
             typ: MESSAGE_TYPE_LAUNCH.to_owned(),
             request_id: 1,

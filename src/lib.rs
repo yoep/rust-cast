@@ -34,6 +34,7 @@ use message_manager::MessageManager;
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
 
+/// Supported channel message types.
 pub enum ChannelMessage<'a> {
     Connection(ConnectionResponse),
     Hearbeat(HeartbeatResponse),
@@ -41,21 +42,50 @@ pub enum ChannelMessage<'a> {
     Receiver(ReceiverResponse),
 }
 
-pub struct Chromecast<'a> {
+/// Structure that manages connection to a cast device.
+pub struct CastDevice<'a> {
     stream: Rc<RefCell<SslStream<TcpStream>>>,
 
+    /// Channel that manages connection responses/requests.
     pub connection: ConnectionChannel<'a, SslStream<TcpStream>>,
+
+    /// Channel that allows connection to stay alive (via ping-pong requests/responses).
     pub heartbeat: HeartbeatChannel<'a, SslStream<TcpStream>>,
+
+    /// Channel that manages various media stuff.
     pub media: MediaChannel<'a, SslStream<TcpStream>>,
+
+    /// Channel that manages receiving platform (eg. Chromecast).
     pub receiver: ReceiverChannel<'a, SslStream<TcpStream>>,
 }
 
-impl<'a> Chromecast<'a> {
+impl<'a> CastDevice<'a> {
+    /// Connects to the cast device using host name and port.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let device = try!(CastDevice::connect(args.flag_address.unwrap(), args.flag_port));
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - Cast device host name.
+    /// * `port` - Cast device port number.
+    ///
+    /// # Errors
+    ///
+    /// This method may fail if connection to Cast device can't be established for some reason
+    /// (eg. wrong host name or port).
+    ///
+    /// # Return value
+    ///
+    /// Instance of `CastDevice` that allows you to manage connection.
     pub fn connect<S>(host: S, port: u16)
-        -> Result<Chromecast<'a>, Error> where S: Into<Cow<'a, str>> {
+        -> Result<CastDevice<'a>, Error> where S: Into<Cow<'a, str>> {
         let host = host.into();
 
-        debug!("Establishing connection with Chromecast at {}:{}...", host, port);
+        debug!("Establishing connection with cast device at {}:{}...", host, port);
 
         let ssl_context = try!(SslContext::new(SslMethod::Sslv23));
         let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
@@ -72,7 +102,7 @@ impl<'a> Chromecast<'a> {
                                             ssl_stream_rc.clone());
         let media = MediaChannel::new(DEFAULT_SENDER_ID, ssl_stream_rc.clone());
 
-        Ok(Chromecast {
+        Ok(CastDevice {
             stream: ssl_stream_rc,
             heartbeat: heartbeat,
             connection: connection,
@@ -81,6 +111,27 @@ impl<'a> Chromecast<'a> {
         })
     }
 
+    /// Waits for any message returned by cast device (eg. Chromecast) and returns its parsed
+    /// version.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// match cast_device.receive() {
+    ///     Ok(ChannelMessage::Connection(res)) => debug!("Connection message: {:?}", res),
+    ///     Ok(ChannelMessage::Hearbeat(_)) => cast_device.heartbeat.pong(),
+    ///     .......
+    ///     Err(err) => error!("Error occurred while receiving message {}", err)
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Usually fails if message returned by device can't be parsed.
+    ///
+    /// # Returned values
+    ///
+    /// Parsed channel message.
     pub fn receive(&self) -> Result<ChannelMessage, Error> {
         let cast_message = try!(MessageManager::receive(&mut *self.stream.borrow_mut()));
 

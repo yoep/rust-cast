@@ -1,5 +1,5 @@
 [package]
-name = "chromecast_link"
+name = "rust_cast"
 version = "0.3.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 

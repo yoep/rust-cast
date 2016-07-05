@@ -8,7 +8,7 @@ use errors::Error;
 use message_manager::MessageManager;
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.connection";
-const CHANNEL_USER_AGENT: &'static str = "ChromecastLink";
+const CHANNEL_USER_AGENT: &'static str = "RustCast";
 
 const MESSAGE_TYPE_CONNECT: &'static str = "CONNECT";
 const MESSAGE_TYPE_CLOSE: &'static str = "CLOSE";
