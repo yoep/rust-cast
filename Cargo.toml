@@ -6,7 +6,7 @@ homepage = "https://github.com/azasypkin/rust-cast"
 repository = "https://github.com/azasypkin/rust-cast"
 readme = "README.md"
 license = "MIT"
-keywords = ["cast", "chromecast", "google cast"]
+keywords = ["cast", "chromecast", "google"]
 version = "0.3.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 

@@ -1,8 +1,8 @@
 [![Build Status](https://travis-ci.org/azasypkin/rust-cast.svg?branch=master)](https://travis-ci.org/azasypkin/rust-cast)
 
 # Usage
-
-Try out [Rust Caster](https://github.com/azasypkin/rust-caster) to see this crate in action!
+* [Documentation](https://azasypkin.github.io/rust-cast/)
+* Try out [Rust Caster](https://github.com/azasypkin/rust-caster) to see this crate in action!
 
 # DNS TXT Record description
 
