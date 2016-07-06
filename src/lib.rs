@@ -10,7 +10,7 @@ extern crate protobuf;
 extern crate serde;
 extern crate serde_json;
 
-pub mod cast;
+mod cast;
 pub mod errors;
 mod utils;
 mod message_manager;
