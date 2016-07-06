@@ -5,12 +5,19 @@ use openssl::ssl::error::SslError;
 use protobuf::ProtobufError;
 use serde_json::error::Error as SerializationError;
 
+/// Consolidates possible error types that can occur in the lib.
 #[derive(Debug)]
 pub enum Error {
+    /// This variant is used when error occurs in the lib logic.
     Internal(String),
+    /// This variant includes everything related to the network connection.
     Io(IoError),
+    /// This variant includes all possible errors that come from Protobuf layer.
     Protobuf(ProtobufError),
+    /// This variant includes everything related to (de)serialization of incoming and outgoing
+    /// messages.
     Serialization(SerializationError),
+    /// This variant includes any error that comes from OpenSSL.
     Ssl(SslError)
 }
 
