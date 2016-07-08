@@ -5,9 +5,8 @@ use std::rc::Rc;
 
 use serde_json;
 
-use cast::cast_channel;
 use errors::Error;
-use message_manager::MessageManager;
+use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.media";
 
@@ -114,7 +113,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         }
     }
 
-    pub fn load<S>(&self, receiver: S, session_id: S, content_id: S, content_type: S,
+    pub fn load<S>(&self, destination: S, session_id: S, content_id: S, content_type: S,
                    stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
 
         let stream_type_string = match stream_type {
@@ -123,32 +122,41 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
             StreamType::Live => "LIVE",
         };
 
-        let payload = MediaRequest {
-            request_id: 1,
-            session_id: session_id.into(),
-            typ: MESSAGE_TYPE_LOAD.to_owned(),
+        let payload = try!(serde_json::to_string(
+            &MediaRequest {
+                request_id: 1,
+                session_id: session_id.into(),
+                typ: MESSAGE_TYPE_LOAD.to_owned(),
 
-            media: Media {
-                content_id: content_id.into(),
-                stream_type: stream_type_string.into(),
-                content_type: content_type.into(),
-            },
+                media: Media {
+                    content_id: content_id.into(),
+                    stream_type: stream_type_string.into(),
+                    content_type: content_type.into(),
+                },
 
-            current_time: 0_f64,
-            autoplay: true,
-            custom_data: CustomData::new(),
+                current_time: 0_f64,
+                autoplay: true,
+                custom_data: CustomData::new(),
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    pub fn can_handle(&self, message: &CastMessage) -> bool {
+        message.namespace == CHANNEL_NAMESPACE
+    }
+
+    pub fn parse(&self, message: &CastMessage) -> Result<MediaResponse, Error> {
+        let reply = match message.payload {
+            CastMessagePayload::String(ref payload) => try!(
+                serde_json::from_str::<serde_json::Value>(payload)),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
         };
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), receiver.into().to_string(), Some(payload))
-    }
-
-    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
-        message.get_namespace() == CHANNEL_NAMESPACE
-    }
-
-    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<MediaResponse, Error> {
-        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))

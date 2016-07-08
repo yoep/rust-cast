@@ -13,7 +13,7 @@ extern crate serde_json;
 mod cast;
 pub mod errors;
 mod utils;
-mod message_manager;
+pub mod message_manager;
 pub mod channels;
 
 use std::borrow::Cow;
@@ -30,18 +30,24 @@ use channels::media::{MediaChannel, MediaResponse};
 
 use errors::Error;
 
-use message_manager::MessageManager;
+use message_manager::{CastMessage, MessageManager};
 
 const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
 
 /// Supported channel message types.
 pub enum ChannelMessage<'a> {
+    /// Message to be processed by `ConnectionChannel`.
     Connection(ConnectionResponse),
-    Hearbeat(HeartbeatResponse),
+    /// Message to be processed by `HeartbeatChannel`.
+    Heartbeat(HeartbeatResponse),
+    /// Message to be processed by `MediaChannel`.
     Media(MediaResponse<'a>),
+    /// Message to be processed by `ReceiverChannel`.
     Receiver(ReceiverResponse),
-    Raw(cast::cast_channel::CastMessage),
+    /// Raw message is returned when built-in channels can't process it (eg. because of unknown
+    /// `namespace`).
+    Raw(CastMessage),
 }
 
 /// Structure that manages connection to a cast device.
@@ -142,7 +148,7 @@ impl<'a> CastDevice<'a> {
         }
 
         if self.heartbeat.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Hearbeat(try!(self.heartbeat.parse(&cast_message))));
+            return Ok(ChannelMessage::Heartbeat(try!(self.heartbeat.parse(&cast_message))));
         }
 
         if self.media.can_handle(&cast_message) {

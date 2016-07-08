@@ -7,9 +7,8 @@ use std::string::ToString;
 
 use serde_json;
 
-use cast::cast_channel;
 use errors::Error;
-use message_manager::MessageManager;
+use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.receiver";
 
@@ -178,43 +177,62 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
     }
 
     pub fn launch_app(&self, app: CastDeviceApp) -> Result<(), Error> {
-        let payload = AppLaunchRequest {
-            typ: MESSAGE_TYPE_LAUNCH.to_owned(),
-            request_id: 1,
-            app_id: app.to_string(),
-        };
+        let payload = try!(serde_json::to_string(
+            &AppLaunchRequest {
+                typ: MESSAGE_TYPE_LAUNCH.to_owned(),
+                request_id: 1,
+                app_id: app.to_string(),
+            }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: self.receiver.to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
     }
 
     pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = AppStopRequest {
-            typ: MESSAGE_TYPE_STOP.to_owned(),
-            request_id: 1,
-            session_id: session_id.into(),
-        };
+        let payload = try!(serde_json::to_string(
+            &AppStopRequest {
+                typ: MESSAGE_TYPE_STOP.to_owned(),
+                request_id: 1,
+                session_id: session_id.into(),
+            }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: self.receiver.to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
     }
 
     pub fn get_status(&self) -> Result<(), Error> {
-        let payload = GetStatusRequest {
-            typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
-            request_id: 1,
+        let payload = try!(serde_json::to_string(
+            &GetStatusRequest {
+                typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
+                request_id: 1,
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: self.receiver.to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    pub fn can_handle(&self, message: &CastMessage) -> bool {
+        message.namespace == CHANNEL_NAMESPACE
+    }
+
+    pub fn parse(&self, message: &CastMessage) -> Result<ReceiverResponse, Error> {
+        let reply = match message.payload {
+            CastMessagePayload::String(ref payload) => try!(
+                serde_json::from_str::<serde_json::Value>(payload)),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
         };
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
-    }
-
-    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
-        message.get_namespace() == CHANNEL_NAMESPACE
-    }
-
-    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ReceiverResponse, Error> {
-        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))

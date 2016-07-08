@@ -5,9 +5,8 @@ use std::rc::Rc;
 
 use serde_json;
 
-use cast::cast_channel;
 use errors::Error;
-use message_manager::MessageManager;
+use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.connection";
 const CHANNEL_USER_AGENT: &'static str = "RustCast";
@@ -45,31 +44,45 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
     }
 
     pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = ConnectionRequest {
-            typ: MESSAGE_TYPE_CONNECT.to_owned(),
-            user_agent: CHANNEL_USER_AGENT.to_owned(),
-        };
+        let payload = try!(serde_json::to_string(
+            &ConnectionRequest {
+                typ: MESSAGE_TYPE_CONNECT.to_owned(),
+                user_agent: CHANNEL_USER_AGENT.to_owned(),
+            }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), destination.into().to_string(), Some(payload))
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
     }
 
     pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = ConnectionRequest {
-            typ: MESSAGE_TYPE_CLOSE.to_owned(),
-            user_agent: CHANNEL_USER_AGENT.to_owned(),
+        let payload = try!(serde_json::to_string(
+            &ConnectionRequest {
+                typ: MESSAGE_TYPE_CLOSE.to_owned(),
+                user_agent: CHANNEL_USER_AGENT.to_owned(),
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    pub fn can_handle(&self, message: &CastMessage) -> bool {
+        message.namespace == CHANNEL_NAMESPACE
+    }
+
+    pub fn parse(&self, message: &CastMessage) -> Result<ConnectionResponse, Error> {
+        let reply = match message.payload {
+            CastMessagePayload::String(ref payload) => try!(
+                serde_json::from_str::<serde_json::Value>(payload)),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
         };
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
-                             self.sender.to_string(), destination.into().to_string(), Some(payload))
-    }
-
-    pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
-        message.get_namespace() == CHANNEL_NAMESPACE
-    }
-
-    pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ConnectionResponse, Error> {
-        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
