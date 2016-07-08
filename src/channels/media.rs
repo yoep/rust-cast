@@ -3,8 +3,7 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
-use serde_json::Value;
-use serde_json::value::from_value;
+use serde_json;
 
 use cast::cast_channel;
 use errors::Error;
@@ -98,7 +97,7 @@ pub struct LoadCancelledReply {
 pub enum MediaResponse<'a> {
     MediaStatus(MediaStatusReply<'a>),
     LoadCancelled(LoadCancelledReply),
-    NotImplemented(String, Value),
+    NotImplemented(String, serde_json::Value),
 }
 
 pub struct MediaChannel<'a, W> where W: Write {
@@ -149,7 +148,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<MediaResponse, Error> {
-        let reply: Value = try!(MessageManager::parse_payload(message));
+        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
@@ -158,8 +157,10 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
             .to_owned();
 
         let response = match message_type.as_ref() {
-            MESSAGE_TYPE_MEDIA_STATUS => MediaResponse::MediaStatus(try!(from_value(reply))),
-            MESSAGE_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled(try!(from_value(reply))),
+            MESSAGE_TYPE_MEDIA_STATUS => MediaResponse::MediaStatus(
+                try!(serde_json::value::from_value(reply))),
+            MESSAGE_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled(
+                try!(serde_json::value::from_value(reply))),
             _ => MediaResponse::NotImplemented(message_type.to_owned(), reply),
         };
 

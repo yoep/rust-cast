@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
-use serde_json::Value;
+use serde_json;
 
 use cast::cast_channel;
 use errors::Error;
@@ -27,7 +27,7 @@ struct ConnectionRequest {
 pub enum ConnectionResponse {
     Connect,
     Close,
-    NotImplemented(String, Value),
+    NotImplemented(String, serde_json::Value),
 }
 
 pub struct ConnectionChannel<'a, W> where W: Write {
@@ -69,7 +69,7 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ConnectionResponse, Error> {
-        let reply: Value = try!(MessageManager::parse_payload(message));
+        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))

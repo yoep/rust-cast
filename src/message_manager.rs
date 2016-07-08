@@ -44,11 +44,6 @@ impl MessageManager {
         Ok(message)
     }
 
-    pub fn parse_payload<P>(message: &cast_channel::CastMessage)
-        -> Result<P, Error> where P: serde::Deserialize {
-        Ok(try!(serde_json::from_str(message.get_payload_utf8())))
-    }
-
     fn create<P>(namespace: String, sender: String, receiver: String, payload: Option<P>)
         -> Result<cast_channel::CastMessage, Error> where P: serde::Serialize {
         let mut message = cast_channel::CastMessage::new();

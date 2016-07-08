@@ -4,8 +4,8 @@ use std::io::Write;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::string::ToString;
-use serde_json::Value;
-use serde_json::value::from_value;
+
+use serde_json;
 
 use cast::cast_channel;
 use errors::Error;
@@ -124,7 +124,7 @@ pub struct LaunchErrorReply {
 pub enum ReceiverResponse {
     Status(StatusReply),
     LaunchError(LaunchErrorReply),
-    NotImplemented(String, Value),
+    NotImplemented(String, serde_json::Value),
 }
 
 #[derive(Debug, PartialEq)]
@@ -214,7 +214,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ReceiverResponse, Error> {
-        let reply: Value = try!(MessageManager::parse_payload(message));
+        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
@@ -223,8 +223,10 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             .to_owned();
 
         let response = match message_type.as_ref() {
-            MESSAGE_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(try!(from_value(reply))),
-            MESSAGE_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(try!(from_value(reply))),
+            MESSAGE_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(
+                try!(serde_json::value::from_value(reply))),
+            MESSAGE_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(
+                try!(serde_json::value::from_value(reply))),
             _ => ReceiverResponse::NotImplemented(message_type.to_owned(), reply),
         };
 

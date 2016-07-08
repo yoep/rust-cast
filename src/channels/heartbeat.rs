@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
-use serde_json::Value;
+use serde_json;
 
 use cast::cast_channel;
 use errors::Error;
@@ -24,7 +24,7 @@ struct HeartBeatRequest {
 pub enum HeartbeatResponse {
     Ping,
     Pong,
-    NotImplemented(String, Value),
+    NotImplemented(String, serde_json::Value),
 }
 
 pub struct HeartbeatChannel<'a, W> where W: Write {
@@ -60,7 +60,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, Error> {
-        let reply: Value = try!(MessageManager::parse_payload(message));
+        let reply = try!(serde_json::from_str::<serde_json::Value>(message.get_payload_utf8()));
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
