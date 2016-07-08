@@ -17,8 +17,8 @@ const MESSAGE_TYPE_LAUNCH: &'static str = "LAUNCH";
 const MESSAGE_TYPE_STOP: &'static str = "STOP";
 const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
 
-const REPLY_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
-const REPLY_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
+const MESSAGE_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
+const MESSAGE_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
 
 const APP_DEFAULT_MEDIA_RECEIVER_ID: &'static str = "CC1AD845";
 const APP_BACKDROP_ID: &'static str = "E8C28D3C";
@@ -124,7 +124,7 @@ pub struct LaunchErrorReply {
 pub enum ReceiverResponse {
     Status(StatusReply),
     LaunchError(LaunchErrorReply),
-    Unknown,
+    NotImplemented(String, Value),
 }
 
 #[derive(Debug, PartialEq)]
@@ -184,12 +184,8 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             app_id: app.to_string(),
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  self.receiver.to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
     }
 
     pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
@@ -199,12 +195,8 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             session_id: session_id.into(),
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  self.receiver.to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
     }
 
     pub fn get_status(&self) -> Result<(), Error> {
@@ -213,12 +205,8 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             request_id: 1,
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  self.receiver.to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), self.receiver.to_string(), Some(payload))
     }
 
     pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
@@ -228,19 +216,18 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ReceiverResponse, Error> {
         let reply: Value = try!(MessageManager::parse_payload(message));
 
-        let message_type = match reply.as_object()
+        let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
-            .and_then(|property| property.as_string()) {
-            None => return Err(Error::Internal("Unexpected reply format".to_owned())),
-            Some(string) => string.to_owned()
+            .and_then(|property| property.as_string())
+            .unwrap_or("")
+            .to_owned();
+
+        let response = match message_type.as_ref() {
+            MESSAGE_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(try!(from_value(reply))),
+            MESSAGE_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(try!(from_value(reply))),
+            _ => ReceiverResponse::NotImplemented(message_type.to_owned(), reply),
         };
 
-        let reply = match &message_type as &str {
-            REPLY_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(try!(from_value(reply))),
-            REPLY_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(try!(from_value(reply))),
-            _ => ReceiverResponse::Unknown,
-        };
-
-        Ok(reply)
+        Ok(response)
     }
 }

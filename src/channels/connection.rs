@@ -3,6 +3,8 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
+use serde_json::Value;
+
 use cast::cast_channel;
 use errors::Error;
 use message_manager::MessageManager;
@@ -21,10 +23,11 @@ struct ConnectionRequest {
     pub user_agent: String,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ConnectionResponse {
-    #[serde(rename="type")]
-    pub typ: String,
+#[derive(Debug)]
+pub enum ConnectionResponse {
+    Connect,
+    Close,
+    NotImplemented(String, Value),
 }
 
 pub struct ConnectionChannel<'a, W> where W: Write {
@@ -47,12 +50,8 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
             user_agent: CHANNEL_USER_AGENT.to_owned(),
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  destination.into().to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), destination.into().to_string(), Some(payload))
     }
 
     pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
@@ -61,12 +60,8 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
             user_agent: CHANNEL_USER_AGENT.to_owned(),
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  destination.into().to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), destination.into().to_string(), Some(payload))
     }
 
     pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
@@ -74,6 +69,20 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<ConnectionResponse, Error> {
-        MessageManager::parse_payload(message)
+        let reply: Value = try!(MessageManager::parse_payload(message));
+
+        let message_type = reply.as_object()
+            .and_then(|object| object.get("type"))
+            .and_then(|property| property.as_string())
+            .unwrap_or("")
+            .to_owned();
+
+        let response = match message_type.as_ref() {
+            MESSAGE_TYPE_CONNECT => ConnectionResponse::Connect,
+            MESSAGE_TYPE_CLOSE => ConnectionResponse::Close,
+            _ => ConnectionResponse::NotImplemented(message_type.to_owned(), reply),
+        };
+
+        Ok(response)
     }
 }

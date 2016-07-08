@@ -41,6 +41,7 @@ pub enum ChannelMessage<'a> {
     Hearbeat(HeartbeatResponse),
     Media(MediaResponse<'a>),
     Receiver(ReceiverResponse),
+    Raw(cast::cast_channel::CastMessage),
 }
 
 /// Structure that manages connection to a cast device.
@@ -120,7 +121,7 @@ impl<'a> CastDevice<'a> {
     /// ```
     /// match cast_device.receive() {
     ///     Ok(ChannelMessage::Connection(res)) => debug!("Connection message: {:?}", res),
-    ///     Ok(ChannelMessage::Hearbeat(_)) => cast_device.heartbeat.pong(),
+    ///     Ok(ChannelMessage::Heartbeat(_)) => cast_device.heartbeat.pong(),
     ///     .......
     ///     Err(err) => error!("Error occurred while receiving message {}", err)
     /// }
@@ -152,7 +153,6 @@ impl<'a> CastDevice<'a> {
             return Ok(ChannelMessage::Receiver(try!(self.receiver.parse(&cast_message))));
         }
 
-        Err(Error::Internal(
-            format!("Unsupported message namespace: {}", cast_message.get_namespace())))
+        Ok(ChannelMessage::Raw(cast_message))
     }
 }

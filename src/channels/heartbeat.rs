@@ -3,6 +3,8 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
+use serde_json::Value;
+
 use cast::cast_channel;
 use errors::Error;
 use message_manager::MessageManager;
@@ -18,10 +20,11 @@ struct HeartBeatRequest {
     pub typ: String,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct HeartbeatResponse {
-    #[serde(rename="type")]
-    pub typ: String,
+#[derive(Debug)]
+pub enum HeartbeatResponse {
+    Ping,
+    Pong,
+    NotImplemented(String, Value),
 }
 
 pub struct HeartbeatChannel<'a, W> where W: Write {
@@ -41,29 +44,15 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
     }
 
     pub fn ping(&self) -> Result<(), Error> {
-        let payload = HeartBeatRequest {
-            typ: MESSAGE_TYPE_PING.to_owned(),
-        };
-
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  self.receiver.to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), self.receiver.to_string(),
+                             Some(HeartBeatRequest { typ: MESSAGE_TYPE_PING.to_owned() }))
     }
 
     pub fn pong(&self) -> Result<(), Error> {
-        let payload = HeartBeatRequest {
-            typ: MESSAGE_TYPE_PONG.to_owned(),
-        };
-
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  self.receiver.to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), self.receiver.to_string(),
+                             Some(HeartBeatRequest { typ: MESSAGE_TYPE_PONG.to_owned() }))
     }
 
     pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
@@ -71,6 +60,20 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
     }
 
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<HeartbeatResponse, Error> {
-        MessageManager::parse_payload(message)
+        let reply: Value = try!(MessageManager::parse_payload(message));
+
+        let message_type = reply.as_object()
+            .and_then(|object| object.get("type"))
+            .and_then(|property| property.as_string())
+            .unwrap_or("")
+            .to_owned();
+
+        let response = match message_type.as_ref() {
+            MESSAGE_TYPE_PING => HeartbeatResponse::Ping,
+            MESSAGE_TYPE_PONG => HeartbeatResponse::Pong,
+            _ => HeartbeatResponse::NotImplemented(message_type.to_owned(), reply),
+        };
+
+        Ok(response)
     }
 }

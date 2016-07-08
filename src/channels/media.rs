@@ -13,9 +13,8 @@ use message_manager::MessageManager;
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.media";
 
 const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
-
-const REPLY_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
-const REPLY_TYPE_LOAD_CANCELLED: &'static str = "LOAD_CANCELLED";
+const MESSAGE_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
+const MESSAGE_TYPE_LOAD_CANCELLED: &'static str = "LOAD_CANCELLED";
 
 pub enum StreamType {
     None,
@@ -99,7 +98,7 @@ pub struct LoadCancelledReply {
 pub enum MediaResponse<'a> {
     MediaStatus(MediaStatusReply<'a>),
     LoadCancelled(LoadCancelledReply),
-    Unknown,
+    NotImplemented(String, Value),
 }
 
 pub struct MediaChannel<'a, W> where W: Write {
@@ -141,12 +140,8 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
             custom_data: CustomData::new(),
         };
 
-        let message = try!(MessageManager::create(CHANNEL_NAMESPACE.to_owned(),
-                                                  self.sender.to_string(),
-                                                  receiver.into().to_string(),
-                                                  Some(payload)));
-
-        MessageManager::send(&mut *self.writer.borrow_mut(), message)
+        MessageManager::send(&mut *self.writer.borrow_mut(), CHANNEL_NAMESPACE.to_owned(),
+                             self.sender.to_string(), receiver.into().to_string(), Some(payload))
     }
 
     pub fn can_handle(&self, message: &cast_channel::CastMessage) -> bool {
@@ -156,19 +151,18 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
     pub fn parse(&self, message: &cast_channel::CastMessage) -> Result<MediaResponse, Error> {
         let reply: Value = try!(MessageManager::parse_payload(message));
 
-        let message_type = match reply.as_object()
+        let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
-            .and_then(|property| property.as_string()) {
-            None => return Err(Error::Internal("Unexpected reply format".to_owned())),
-            Some(string) => string.to_owned()
+            .and_then(|property| property.as_string())
+            .unwrap_or("")
+            .to_owned();
+
+        let response = match message_type.as_ref() {
+            MESSAGE_TYPE_MEDIA_STATUS => MediaResponse::MediaStatus(try!(from_value(reply))),
+            MESSAGE_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled(try!(from_value(reply))),
+            _ => MediaResponse::NotImplemented(message_type.to_owned(), reply),
         };
 
-        let reply = match &message_type as &str {
-            REPLY_TYPE_MEDIA_STATUS => MediaResponse::MediaStatus(try!(from_value(reply))),
-            REPLY_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled(try!(from_value(reply))),
-            _ => MediaResponse::Unknown,
-        };
-
-        Ok(reply)
+        Ok(response)
     }
 }

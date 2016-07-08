@@ -10,9 +10,9 @@ use errors::Error;
 pub struct MessageManager;
 
 impl MessageManager {
-    pub fn send<W>(writer: &mut W, message: cast_channel::CastMessage)
-        -> Result<(), Error> where W: Write
-    {
+    pub fn send<W, P>(writer: &mut W, namespace: String, sender: String, receiver: String,
+                      payload: Option<P>) -> Result<(), Error> where W: Write, P: serde::Serialize {
+        let message = try!(MessageManager::create(namespace, sender, receiver, payload));
         let message_content_buffer = try!(utils::to_vec(&message));
         let message_length_buffer = try!(
             utils::write_u32_to_buffer(message_content_buffer.len() as u32));
@@ -25,9 +25,12 @@ impl MessageManager {
         Ok(())
     }
 
-    pub fn receive<T>(reader: &mut T) -> Result<cast_channel::CastMessage, Error> where T: Read
-    {
-        let length = try!(MessageManager::receive_length(reader));
+    pub fn receive<T>(reader: &mut T) -> Result<cast_channel::CastMessage, Error> where T: Read {
+        let mut buffer: [u8; 4] = [0; 4];
+
+        try!(reader.read_exact(&mut buffer));
+
+        let length = try!(utils::read_u32_from_buffer(&buffer));
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
         let mut limited_reader = reader.take(length as u64);
@@ -41,9 +44,13 @@ impl MessageManager {
         Ok(message)
     }
 
-    pub fn create<P>(namespace: String, sender: String, receiver: String, payload: Option<P>)
-        -> Result<cast_channel::CastMessage, Error> where P: serde::Serialize
-    {
+    pub fn parse_payload<P>(message: &cast_channel::CastMessage)
+        -> Result<P, Error> where P: serde::Deserialize {
+        Ok(try!(serde_json::from_str(message.get_payload_utf8())))
+    }
+
+    fn create<P>(namespace: String, sender: String, receiver: String, payload: Option<P>)
+        -> Result<cast_channel::CastMessage, Error> where P: serde::Serialize {
         let mut message = cast_channel::CastMessage::new();
 
         message.set_protocol_version(cast_channel::CastMessage_ProtocolVersion::CASTV2_1_0);
@@ -58,19 +65,5 @@ impl MessageManager {
         }
 
         Ok(message)
-    }
-
-    pub fn parse_payload<P>(message: &cast_channel::CastMessage)
-        -> Result<P, Error> where P: serde::Deserialize
-    {
-        Ok(try!(serde_json::from_str(message.get_payload_utf8())))
-    }
-
-    fn receive_length<T>(reader: &mut T) -> Result<u32, Error> where T: Read
-    {
-        let mut buffer: [u8; 4] = [0; 4];
-        try!(reader.read_exact(&mut buffer));
-
-        utils::read_u32_from_buffer(&buffer)
     }
 }
