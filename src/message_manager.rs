@@ -5,6 +5,7 @@ use utils;
 use errors::Error;
 
 /// Type of the payload that `CastMessage` can have.
+#[derive(Debug)]
 pub enum CastMessagePayload {
     /// Payload represented by UTF-8 string (usually it's just a JSON string).
     String(String),
@@ -13,6 +14,7 @@ pub enum CastMessagePayload {
 }
 
 /// Base structure that represents messages that are exchanged between Receiver and Sender.
+#[derive(Debug)]
 pub struct CastMessage {
     /// A namespace is a labeled protocol. That is, messages that are exchanged throughout the
     /// Cast ecosystem utilize namespaces to identify the protocol of the message being sent.
