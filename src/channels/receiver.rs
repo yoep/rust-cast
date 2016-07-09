@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::convert::Into;
 use std::io::Write;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -15,6 +16,7 @@ const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.receiver";
 const MESSAGE_TYPE_LAUNCH: &'static str = "LAUNCH";
 const MESSAGE_TYPE_STOP: &'static str = "STOP";
 const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
+const MESSAGE_TYPE_SET_VOLUME: &'static str = "SET_VOLUME";
 
 const MESSAGE_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
 const MESSAGE_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
@@ -56,6 +58,17 @@ struct GetStatusRequest {
     pub typ: String,
 }
 
+#[derive(Serialize, Debug)]
+struct SetVolumeRequest {
+    #[serde(rename="requestId")]
+    pub request_id: i32,
+
+    #[serde(rename="type")]
+    pub typ: String,
+
+    pub volume: Volume,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct StatusReply {
     #[serde(rename="requestId")]
@@ -78,7 +91,8 @@ pub struct ReceiverStatus {
     #[serde(rename="isStandBy", default)]
     pub is_stand_by: bool,
 
-    pub volume: ReceiverVolume,
+    /// Volume parameters of the currently active cast device.
+    pub volume: Volume,
 }
 
 #[derive(Deserialize, Debug)]
@@ -107,10 +121,44 @@ pub struct AppNamespace {
     pub name: String,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ReceiverVolume {
-    pub level: f64,
-    pub muted: bool,
+/// Structure that describes possible cast device volume options.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Volume {
+    /// Volume level.
+    pub level: Option<f32>,
+    /// Mute/unmute state.
+    pub muted: Option<bool>,
+}
+
+/// This `Into<Volume>` implementation is useful when only volume level is needed.
+impl Into<Volume> for f32 {
+    fn into(self) -> Volume {
+        Volume {
+            level: Some(self),
+            muted: None,
+        }
+    }
+}
+
+/// This `Into<Volume>` implementation is useful when only mute/unmute state is needed.
+impl Into<Volume> for bool {
+    fn into(self) -> Volume {
+        Volume {
+            level: None,
+            muted: Some(self),
+        }
+    }
+}
+
+/// This `Into<Volume>` implementation is useful when both volume level and mute/unmute state are
+/// needed.
+impl Into<Volume> for (f32, bool) {
+    fn into(self) -> Volume {
+        Volume {
+            level: Some(self.0),
+            muted: Some(self.1),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -213,6 +261,32 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             &GetStatusRequest {
                 typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
                 request_id: 1,
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: self.receiver.to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    /// Sets volume for the active cast device.
+    ///
+    /// # Arguments
+    ///
+    /// * `volume` - anything that can be converted to a valid `Volume` structure. It's possible to
+    ///              set volume level, mute/unmute state or both altogether.
+    ///
+    /// # Errors
+    ///
+    /// Usually method can fail only if network connection with cast device is lost for some reason.
+    pub fn set_volume<T>(&self, volume: T) -> Result<(), Error> where T: Into<Volume> {
+        let payload = try!(serde_json::to_string(
+            &SetVolumeRequest {
+                typ: MESSAGE_TYPE_SET_VOLUME.to_owned(),
+                request_id: 1,
+                volume: volume.into(),
             }));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
