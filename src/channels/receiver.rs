@@ -8,6 +8,7 @@ use std::string::ToString;
 
 use serde_json;
 
+use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
@@ -25,152 +26,10 @@ const APP_DEFAULT_MEDIA_RECEIVER_ID: &'static str = "CC1AD845";
 const APP_BACKDROP_ID: &'static str = "E8C28D3C";
 const APP_YOUTUBE_ID: &'static str = "233637DE";
 
-#[derive(Serialize, Debug)]
-struct AppLaunchRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    #[serde(rename="appId")]
-    pub app_id: String,
-}
-
-#[derive(Serialize, Debug)]
-struct AppStopRequest<'a> {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    #[serde(rename="sessionId")]
-    pub session_id: Cow<'a, str>,
-}
-
-#[derive(Serialize, Debug)]
-struct GetStatusRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-}
-
-#[derive(Serialize, Debug)]
-struct SetVolumeRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub volume: Volume,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct StatusReply {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub status: ReceiverStatus,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ReceiverStatus {
-    #[serde(default)]
-    pub applications: Vec<Application>,
-
-    #[serde(rename="isActiveInput", default)]
-    pub is_active_input: bool,
-
-    #[serde(rename="isStandBy", default)]
-    pub is_stand_by: bool,
-
-    /// Volume parameters of the currently active cast device.
-    pub volume: Volume,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Application {
-    #[serde(rename="appId")]
-    pub app_id: String,
-
-    #[serde(rename="sessionId")]
-    pub session_id: String,
-
-    #[serde(rename="transportId", default)]
-    pub transport_id: String,
-
-    #[serde(default)]
-    pub namespaces: Vec<AppNamespace>,
-
-    #[serde(rename="displayName")]
-    pub display_name: String,
-
-    #[serde(rename="statusText")]
-    pub status_text: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct AppNamespace {
-    pub name: String,
-}
-
-/// Structure that describes possible cast device volume options.
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Volume {
-    /// Volume level.
-    pub level: Option<f32>,
-    /// Mute/unmute state.
-    pub muted: Option<bool>,
-}
-
-/// This `Into<Volume>` implementation is useful when only volume level is needed.
-impl Into<Volume> for f32 {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self),
-            muted: None,
-        }
-    }
-}
-
-/// This `Into<Volume>` implementation is useful when only mute/unmute state is needed.
-impl Into<Volume> for bool {
-    fn into(self) -> Volume {
-        Volume {
-            level: None,
-            muted: Some(self),
-        }
-    }
-}
-
-/// This `Into<Volume>` implementation is useful when both volume level and mute/unmute state are
-/// needed.
-impl Into<Volume> for (f32, bool) {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self.0),
-            muted: Some(self.1),
-        }
-    }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct LaunchErrorReply {
-    #[serde(rename="type")]
-    typ: String,
-}
-
 #[derive(Debug)]
 pub enum ReceiverResponse {
-    Status(StatusReply),
-    LaunchError(LaunchErrorReply),
+    Status(proxies::StatusReply),
+    LaunchError(proxies::LaunchErrorReply),
     NotImplemented(String, serde_json::Value),
 }
 
@@ -226,7 +85,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn launch_app(&self, app: CastDeviceApp) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &AppLaunchRequest {
+            &proxies::AppLaunchRequest {
                 typ: MESSAGE_TYPE_LAUNCH.to_owned(),
                 request_id: 1,
                 app_id: app.to_string(),
@@ -242,7 +101,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
-            &AppStopRequest {
+            &proxies::AppStopRequest {
                 typ: MESSAGE_TYPE_STOP.to_owned(),
                 request_id: 1,
                 session_id: session_id.into(),
@@ -258,7 +117,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn get_status(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &GetStatusRequest {
+            &proxies::GetStatusRequest {
                 typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
                 request_id: 1,
             }));
@@ -281,9 +140,9 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
     /// # Errors
     ///
     /// Usually method can fail only if network connection with cast device is lost for some reason.
-    pub fn set_volume<T>(&self, volume: T) -> Result<(), Error> where T: Into<Volume> {
+    pub fn set_volume<T>(&self, volume: T) -> Result<(), Error> where T: Into<proxies::Volume> {
         let payload = try!(serde_json::to_string(
-            &SetVolumeRequest {
+            &proxies::SetVolumeRequest {
                 typ: MESSAGE_TYPE_SET_VOLUME.to_owned(),
                 request_id: 1,
                 volume: volume.into(),

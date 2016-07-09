@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use serde_json;
 
+use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
@@ -12,12 +13,6 @@ const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.heartbeat
 
 const MESSAGE_TYPE_PING: &'static str = "PING";
 const MESSAGE_TYPE_PONG: &'static str = "PONG";
-
-#[derive(Serialize, Debug)]
-struct HeartBeatRequest {
-    #[serde(rename="type")]
-    pub typ: String,
-}
 
 #[derive(Debug)]
 pub enum HeartbeatResponse {
@@ -44,7 +39,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
 
     pub fn ping(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &HeartBeatRequest {
+            &proxies::HeartBeatRequest {
                 typ: MESSAGE_TYPE_PING.to_owned()
             }));
 
@@ -58,7 +53,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
 
     pub fn pong(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &HeartBeatRequest {
+            &proxies::HeartBeatRequest {
                 typ: MESSAGE_TYPE_PONG.to_owned()
             }));
 

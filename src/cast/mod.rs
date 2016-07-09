@@ -3,3 +3,4 @@ pub mod authority_keys;
 pub mod cast_channel;
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub mod logging;
+pub mod proxies;

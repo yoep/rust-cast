@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use serde_json;
 
+use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
@@ -13,14 +14,6 @@ const CHANNEL_USER_AGENT: &'static str = "RustCast";
 
 const MESSAGE_TYPE_CONNECT: &'static str = "CONNECT";
 const MESSAGE_TYPE_CLOSE: &'static str = "CLOSE";
-
-#[derive(Serialize, Debug)]
-struct ConnectionRequest {
-    #[serde(rename="type")]
-    pub typ: String,
-    #[serde(rename="userAgent")]
-    pub user_agent: String,
-}
 
 #[derive(Debug)]
 pub enum ConnectionResponse {
@@ -45,7 +38,7 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
 
     pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
-            &ConnectionRequest {
+            &proxies::ConnectionRequest {
                 typ: MESSAGE_TYPE_CONNECT.to_owned(),
                 user_agent: CHANNEL_USER_AGENT.to_owned(),
             }));
@@ -60,7 +53,7 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
 
     pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
-            &ConnectionRequest {
+            &proxies::ConnectionRequest {
                 typ: MESSAGE_TYPE_CLOSE.to_owned(),
                 user_agent: CHANNEL_USER_AGENT.to_owned(),
             }));

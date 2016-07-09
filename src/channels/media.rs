@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use serde_json;
 
+use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
@@ -20,82 +21,10 @@ pub enum StreamType {
     Live,
 }
 
-#[derive(Serialize, Debug)]
-pub struct MediaRequest<'a> {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="sessionId")]
-    pub session_id: Cow<'a, str>,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub media: Media<'a>,
-
-    #[serde(rename="currentTime")]
-    pub current_time: f64,
-
-    #[serde(rename="customData")]
-    pub custom_data: CustomData,
-
-    pub autoplay: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Media<'a> {
-    #[serde(rename="contentId")]
-    pub content_id: Cow<'a, str>,
-
-    #[serde(rename="streamType", default)]
-    pub stream_type: Cow<'a, str>,
-
-    #[serde(rename="contentType")]
-    pub content_type: Cow<'a, str>,
-}
-
-#[derive(Serialize, Debug)]
-pub struct CustomData {
-    #[serde(skip_serializing)]
-    private: (),
-}
-
-impl CustomData {
-    pub fn new() -> CustomData {
-        CustomData { private: () }
-    }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct MediaStatus<'a> {
-    #[serde(default)]
-    pub media: Option<Media<'a>>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct MediaStatusReply<'a> {
-    #[serde(rename="requestId", default)]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub status: Vec<MediaStatus<'a>>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct LoadCancelledReply {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    typ: String,
-}
-
 #[derive(Debug)]
-pub enum MediaResponse<'a> {
-    MediaStatus(MediaStatusReply<'a>),
-    LoadCancelled(LoadCancelledReply),
+pub enum MediaResponse {
+    MediaStatus(proxies::MediaStatusReply),
+    LoadCancelled(proxies::LoadCancelledReply),
     NotImplemented(String, serde_json::Value),
 }
 
@@ -123,20 +52,20 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         };
 
         let payload = try!(serde_json::to_string(
-            &MediaRequest {
+            &proxies::MediaRequest {
                 request_id: 1,
-                session_id: session_id.into(),
+                session_id: session_id.into().to_string(),
                 typ: MESSAGE_TYPE_LOAD.to_owned(),
 
-                media: Media {
-                    content_id: content_id.into(),
-                    stream_type: stream_type_string.into(),
-                    content_type: content_type.into(),
+                media: proxies::Media {
+                    content_id: content_id.into().to_string(),
+                    stream_type: stream_type_string.to_string(),
+                    content_type: content_type.into().to_string(),
                 },
 
                 current_time: 0_f64,
                 autoplay: true,
-                custom_data: CustomData::new(),
+                custom_data: proxies::CustomData::new(),
             }));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {

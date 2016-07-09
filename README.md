@@ -1,7 +1,5 @@
 [![Build Status](https://travis-ci.org/azasypkin/rust-cast.svg?branch=master)](https://travis-ci.org/azasypkin/rust-cast)
 
-__Tested and works only with the latest Rust Nightly!__
-
 # Usage
 * [Documentation](https://azasypkin.github.io/rust-cast/)
 * Try out [Rust Caster](https://github.com/azasypkin/rust-caster) to see this crate in action!

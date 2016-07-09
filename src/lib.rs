@@ -1,6 +1,4 @@
 #![doc(html_root_url = "https://azasypkin.github.io/rust-cast/")]
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
 
 extern crate byteorder;
 #[macro_use]
@@ -36,13 +34,13 @@ const DEFAULT_SENDER_ID: &'static str = "sender-0";
 const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
 
 /// Supported channel message types.
-pub enum ChannelMessage<'a> {
+pub enum ChannelMessage {
     /// Message to be processed by `ConnectionChannel`.
     Connection(ConnectionResponse),
     /// Message to be processed by `HeartbeatChannel`.
     Heartbeat(HeartbeatResponse),
     /// Message to be processed by `MediaChannel`.
-    Media(MediaResponse<'a>),
+    Media(MediaResponse),
     /// Message to be processed by `ReceiverChannel`.
     Receiver(ReceiverResponse),
     /// Raw message is returned when built-in channels can't process it (eg. because of unknown

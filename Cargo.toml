@@ -1,21 +1,24 @@
 [package]
 name = "rust_cast"
-description = "Library that allows you to communicate with Google Cast enabled devices (eg. Chromecast). Currently tested and works only with the latest Rust Nightly!"
+description = "Library that allows you to communicate with Google Cast enabled devices (eg. Chromecast)."
 documentation = "https://azasypkin.github.io/rust-cast/"
 homepage = "https://github.com/azasypkin/rust-cast"
 repository = "https://github.com/azasypkin/rust-cast"
 readme = "README.md"
 license = "MIT"
 keywords = ["cast", "chromecast", "google"]
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 exclude = ["protobuf/*"]
+build = "build.rs"
 
 [dependencies]
 byteorder = "0.5.3"
 log = "0.3.6"
 openssl = "0.7.14"
 protobuf = "1.0.22"
-serde = "0.7.13"
+serde = "0.7.14"
 serde_json = "0.7.4"
-serde_macros = "0.7.13"
+
+[build-dependencies]
+serde_codegen = "0.7.14"
