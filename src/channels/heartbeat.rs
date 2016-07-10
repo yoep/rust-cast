@@ -39,7 +39,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
 
     pub fn ping(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &proxies::HeartBeatRequest {
+            &proxies::heartbeat::HeartBeatRequest {
                 typ: MESSAGE_TYPE_PING.to_owned()
             }));
 
@@ -53,7 +53,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
 
     pub fn pong(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &proxies::HeartBeatRequest {
+            &proxies::heartbeat::HeartBeatRequest {
                 typ: MESSAGE_TYPE_PONG.to_owned()
             }));
 

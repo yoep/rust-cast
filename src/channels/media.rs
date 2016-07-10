@@ -15,16 +15,26 @@ const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 const MESSAGE_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
 const MESSAGE_TYPE_LOAD_CANCELLED: &'static str = "LOAD_CANCELLED";
 
+/// Describes the way cast device should stream content.
 pub enum StreamType {
+    /// This variant allows cast device to automatically choose whatever way it's most comfortable
+    /// with.
     None,
+    /// Cast device should buffer some portion of the content and only then start streaming.
     Buffered,
+    /// Cast device should display content as soon as it gets any portion of it.
     Live,
 }
 
+/// Represents all currently supported incoming messages that media channel can handle.
 #[derive(Debug)]
 pub enum MediaResponse {
-    MediaStatus(proxies::MediaStatusReply),
-    LoadCancelled(proxies::LoadCancelledReply),
+    /// Status of the currently active media.
+    MediaStatus(proxies::media::MediaStatusReply),
+    /// Information about cancelled media.
+    LoadCancelled(proxies::media::LoadCancelledReply),
+    /// Used every time when channel can't parse the message. Associated data contains `type` string
+    /// field and raw JSON data returned from cast device.
     NotImplemented(String, serde_json::Value),
 }
 
@@ -52,12 +62,12 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         };
 
         let payload = try!(serde_json::to_string(
-            &proxies::MediaRequest {
-                request_id: 1,
+            &proxies::media::MediaRequest {
+                request_id: 1000,
                 session_id: session_id.into().to_string(),
                 typ: MESSAGE_TYPE_LOAD.to_owned(),
 
-                media: proxies::Media {
+                media: proxies::media::Media {
                     content_id: content_id.into().to_string(),
                     stream_type: stream_type_string.to_string(),
                     content_type: content_type.into().to_string(),
@@ -65,7 +75,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
 
                 current_time: 0_f64,
                 autoplay: true,
-                custom_data: proxies::CustomData::new(),
+                custom_data: proxies::media::CustomData::new(),
             }));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {

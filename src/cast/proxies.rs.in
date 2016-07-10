@@ -1,229 +1,210 @@
-use std::borrow::Cow;
-
-#[derive(Serialize, Debug)]
-pub struct ConnectionRequest {
-    #[serde(rename="type")]
-    pub typ: String,
-    #[serde(rename="userAgent")]
-    pub user_agent: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct HeartBeatRequest {
-    #[serde(rename="type")]
-    pub typ: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct MediaRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="sessionId")]
-    pub session_id: String,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub media: Media,
-
-    #[serde(rename="currentTime")]
-    pub current_time: f64,
-
-    #[serde(rename="customData")]
-    pub custom_data: CustomData,
-
-    pub autoplay: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Media {
-    #[serde(rename="contentId")]
-    pub content_id: String,
-
-    #[serde(rename="streamType", default)]
-    pub stream_type: String,
-
-    #[serde(rename="contentType")]
-    pub content_type: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct CustomData {
-    #[serde(skip_serializing)]
-    private: (),
-}
-
-impl CustomData {
-    pub fn new() -> CustomData {
-        CustomData { private: () }
+/// Proxy classes for the `connection` channel.
+pub mod connection {
+    #[derive(Serialize, Debug)]
+    pub struct ConnectionRequest {
+        #[serde(rename="type")]
+        pub typ: String,
+        #[serde(rename="userAgent")]
+        pub user_agent: String,
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct MediaStatus {
-    #[serde(default)]
-    pub media: Option<Media>,
+/// Proxy classes for the `heartbeat` channel.
+pub mod heartbeat {
+    #[derive(Serialize, Debug)]
+    pub struct HeartBeatRequest {
+        #[serde(rename="type")]
+        pub typ: String,
+    }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct MediaStatusReply {
-    #[serde(rename="requestId", default)]
-    pub request_id: i32,
+/// Proxy classes for the `media` channel.
+pub mod media {
+    #[derive(Serialize, Debug)]
+    pub struct MediaRequest {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
 
-    #[serde(rename="type")]
-    pub typ: String,
+        #[serde(rename="sessionId")]
+        pub session_id: String,
 
-    pub status: Vec<MediaStatus>,
-}
+        #[serde(rename="type")]
+        pub typ: String,
 
-#[derive(Deserialize, Debug)]
-pub struct LoadCancelledReply {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
+        pub media: Media,
 
-    #[serde(rename="type")]
-    typ: String,
-}
+        #[serde(rename="currentTime")]
+        pub current_time: f64,
 
-#[derive(Serialize, Debug)]
-pub struct AppLaunchRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
+        #[serde(rename="customData")]
+        pub custom_data: CustomData,
 
-    #[serde(rename="type")]
-    pub typ: String,
+        pub autoplay: bool,
+    }
 
-    #[serde(rename="appId")]
-    pub app_id: String,
-}
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct Media {
+        #[serde(rename="contentId")]
+        pub content_id: String,
 
-#[derive(Serialize, Debug)]
-pub struct AppStopRequest<'a> {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
+        #[serde(rename="streamType", default)]
+        pub stream_type: String,
 
-    #[serde(rename="type")]
-    pub typ: String,
+        #[serde(rename="contentType")]
+        pub content_type: String,
+    }
 
-    #[serde(rename="sessionId")]
-    pub session_id: Cow<'a, str>,
-}
+    #[derive(Serialize, Debug)]
+    pub struct CustomData {
+        #[serde(skip_serializing)]
+        private: (),
+    }
 
-#[derive(Serialize, Debug)]
-pub struct GetStatusRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct SetVolumeRequest {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub volume: Volume,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct StatusReply {
-    #[serde(rename="requestId")]
-    pub request_id: i32,
-
-    #[serde(rename="type")]
-    pub typ: String,
-
-    pub status: ReceiverStatus,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ReceiverStatus {
-    #[serde(default)]
-    pub applications: Vec<Application>,
-
-    #[serde(rename="isActiveInput", default)]
-    pub is_active_input: bool,
-
-    #[serde(rename="isStandBy", default)]
-    pub is_stand_by: bool,
-
-    /// Volume parameters of the currently active cast device.
-    pub volume: Volume,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Application {
-    #[serde(rename="appId")]
-    pub app_id: String,
-
-    #[serde(rename="sessionId")]
-    pub session_id: String,
-
-    #[serde(rename="transportId", default)]
-    pub transport_id: String,
-
-    #[serde(default)]
-    pub namespaces: Vec<AppNamespace>,
-
-    #[serde(rename="displayName")]
-    pub display_name: String,
-
-    #[serde(rename="statusText")]
-    pub status_text: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct AppNamespace {
-    pub name: String,
-}
-
-/// Structure that describes possible cast device volume options.
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Volume {
-    /// Volume level.
-    pub level: Option<f32>,
-    /// Mute/unmute state.
-    pub muted: Option<bool>,
-}
-
-/// This `Into<Volume>` implementation is useful when only volume level is needed.
-impl Into<Volume> for f32 {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self),
-            muted: None,
+    impl CustomData {
+        pub fn new() -> CustomData {
+            CustomData { private: () }
         }
     }
-}
 
-/// This `Into<Volume>` implementation is useful when only mute/unmute state is needed.
-impl Into<Volume> for bool {
-    fn into(self) -> Volume {
-        Volume {
-            level: None,
-            muted: Some(self),
-        }
+    #[derive(Deserialize, Debug)]
+    pub struct MediaStatus {
+        #[serde(default)]
+        pub media: Option<Media>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct MediaStatusReply {
+        #[serde(rename="requestId", default)]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        pub status: Vec<MediaStatus>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct LoadCancelledReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        typ: String,
     }
 }
 
-/// This `Into<Volume>` implementation is useful when both volume level and mute/unmute state are
-/// needed.
-impl Into<Volume> for (f32, bool) {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self.0),
-            muted: Some(self.1),
-        }
-    }
-}
+/// Proxy classes for the `receiver` channel.
+pub mod receiver {
+    use std::borrow::Cow;
 
-#[derive(Deserialize, Debug)]
-pub struct LaunchErrorReply {
-    #[serde(rename="type")]
-    typ: String,
+    #[derive(Serialize, Debug)]
+    pub struct AppLaunchRequest {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        #[serde(rename="appId")]
+        pub app_id: String,
+    }
+
+    #[derive(Serialize, Debug)]
+    pub struct AppStopRequest<'a> {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        #[serde(rename="sessionId")]
+        pub session_id: Cow<'a, str>,
+    }
+
+    #[derive(Serialize, Debug)]
+    pub struct GetStatusRequest {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+    }
+
+    #[derive(Serialize, Debug)]
+    pub struct SetVolumeRequest {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        pub volume: Volume,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct StatusReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        pub status: ReceiverStatus,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct ReceiverStatus {
+        #[serde(default)]
+        pub applications: Vec<Application>,
+
+        #[serde(rename="isActiveInput", default)]
+        pub is_active_input: bool,
+
+        #[serde(rename="isStandBy", default)]
+        pub is_stand_by: bool,
+
+        /// Volume parameters of the currently active cast device.
+        pub volume: Volume,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct Application {
+        #[serde(rename="appId")]
+        pub app_id: String,
+
+        #[serde(rename="sessionId")]
+        pub session_id: String,
+
+        #[serde(rename="transportId", default)]
+        pub transport_id: String,
+
+        #[serde(default)]
+        pub namespaces: Vec<AppNamespace>,
+
+        #[serde(rename="displayName")]
+        pub display_name: String,
+
+        #[serde(rename="statusText")]
+        pub status_text: String,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct AppNamespace {
+        pub name: String,
+    }
+
+    /// Structure that describes possible cast device volume options.
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct Volume {
+        /// Volume level.
+        pub level: Option<f32>,
+        /// Mute/unmute state.
+        pub muted: Option<bool>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct LaunchErrorReply {
+        #[serde(rename="type")]
+        pub typ: String,
+    }
 }

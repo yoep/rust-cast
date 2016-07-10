@@ -26,10 +26,50 @@ const APP_DEFAULT_MEDIA_RECEIVER_ID: &'static str = "CC1AD845";
 const APP_BACKDROP_ID: &'static str = "E8C28D3C";
 const APP_YOUTUBE_ID: &'static str = "233637DE";
 
+/// Structure that describes possible cast device volume options.
+#[derive(Debug)]
+pub struct Volume {
+    /// Volume level.
+    pub level: Option<f32>,
+    /// Mute/unmute state.
+    pub muted: Option<bool>,
+}
+
+/// This `Into<Volume>` implementation is useful when only volume level is needed.
+impl Into<Volume> for f32 {
+    fn into(self) -> Volume {
+        Volume {
+            level: Some(self),
+            muted: None,
+        }
+    }
+}
+
+/// This `Into<Volume>` implementation is useful when only mute/unmute state is needed.
+impl Into<Volume> for bool {
+    fn into(self) -> Volume {
+        Volume {
+            level: None,
+            muted: Some(self),
+        }
+    }
+}
+
+/// This `Into<Volume>` implementation is useful when both volume level and mute/unmute state are
+/// needed.
+impl Into<Volume> for (f32, bool) {
+    fn into(self) -> Volume {
+        Volume {
+            level: Some(self.0),
+            muted: Some(self.1),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ReceiverResponse {
-    Status(proxies::StatusReply),
-    LaunchError(proxies::LaunchErrorReply),
+    Status(proxies::receiver::StatusReply),
+    LaunchError(proxies::receiver::LaunchErrorReply),
     NotImplemented(String, serde_json::Value),
 }
 
@@ -85,9 +125,9 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn launch_app(&self, app: CastDeviceApp) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &proxies::AppLaunchRequest {
+            &proxies::receiver::AppLaunchRequest {
                 typ: MESSAGE_TYPE_LAUNCH.to_owned(),
-                request_id: 1,
+                request_id: 10000,
                 app_id: app.to_string(),
             }));
 
@@ -101,9 +141,9 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
-            &proxies::AppStopRequest {
+            &proxies::receiver::AppStopRequest {
                 typ: MESSAGE_TYPE_STOP.to_owned(),
-                request_id: 1,
+                request_id: 20000,
                 session_id: session_id.into(),
             }));
 
@@ -117,9 +157,9 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
 
     pub fn get_status(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
-            &proxies::GetStatusRequest {
+            &proxies::receiver::GetStatusRequest {
                 typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
-                request_id: 1,
+                request_id: 30000,
             }));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
@@ -140,12 +180,17 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
     /// # Errors
     ///
     /// Usually method can fail only if network connection with cast device is lost for some reason.
-    pub fn set_volume<T>(&self, volume: T) -> Result<(), Error> where T: Into<proxies::Volume> {
+    pub fn set_volume<T>(&self, volume: T) -> Result<(), Error> where T: Into<Volume> {
+        let volume = volume.into();
+
         let payload = try!(serde_json::to_string(
-            &proxies::SetVolumeRequest {
+            &proxies::receiver::SetVolumeRequest {
                 typ: MESSAGE_TYPE_SET_VOLUME.to_owned(),
-                request_id: 1,
-                volume: volume.into(),
+                request_id: 40000,
+                volume: proxies::receiver::Volume {
+                    level: volume.level,
+                    muted: volume.muted,
+                },
             }));
 
         MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
