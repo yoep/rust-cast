@@ -9,8 +9,8 @@ extern crate serde;
 extern crate serde_json;
 
 mod cast;
-pub mod errors;
 mod utils;
+pub mod errors;
 pub mod message_manager;
 pub mod channels;
 

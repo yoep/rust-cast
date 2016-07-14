@@ -66,10 +66,45 @@ impl Into<Volume> for (f32, bool) {
     }
 }
 
+/// Structure that describes currently run Cast Device application.
+#[derive(Debug)]
+pub struct Application {
+    /// The identifier of the Cast application. Not for display.
+    pub app_id: String,
+    /// Session id of the currently active application.
+    pub session_id: String,
+    /// Name of the `pipe` to talk to the application.
+    pub transport_id: String,
+    /// A list of the namespaces supported by the receiver application.
+    pub namespaces: Vec<String>,
+    /// The human-readable name of the Cast application, for example, "YouTube".
+    pub display_name: String,
+    /// Descriptive text for the current application content, for example “My vacations”.
+    pub status_text: String,
+}
+
+/// Describes the current status of the receiver cast device.
+#[derive(Debug)]
+pub struct Status {
+    /// Contains the list of applications that are currently run.
+    pub applications: Vec<Application>,
+    /// Determines whether the Cast device is the active input or not.
+    pub is_active_input: bool,
+    /// Determines whether the Cast device is in stand by mode.
+    pub is_stand_by: bool,
+    /// Volume parameters of the currently active cast device.
+    pub volume: Volume,
+}
+
+/// Represents all currently supported incoming messages that receiver channel can handle.
 #[derive(Debug)]
 pub enum ReceiverResponse {
-    Status(proxies::receiver::StatusReply),
-    LaunchError(proxies::receiver::LaunchErrorReply),
+    /// Status of the currently active receiver.
+    Status(Status),
+    /// Error indicating that receiver failed to launch application.
+    LaunchError,
+    /// Used every time when channel can't parse the message. Associated data contains `type` string
+    /// field and raw JSON data returned from cast device.
     NotImplemented(String, serde_json::Value),
 }
 
@@ -219,10 +254,33 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write {
             .to_owned();
 
         let response = match message_type.as_ref() {
-            MESSAGE_TYPE_RECEIVER_STATUS => ReceiverResponse::Status(
-                try!(serde_json::value::from_value(reply))),
-            MESSAGE_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError(
-                try!(serde_json::value::from_value(reply))),
+            MESSAGE_TYPE_RECEIVER_STATUS => {
+                let status_reply: proxies::receiver::StatusReply = try!(
+                    serde_json::value::from_value(reply));
+
+                let status = Status {
+                    applications: status_reply.status.applications.iter().map(|ref app| {
+                        Application {
+                            app_id: app.app_id.clone(),
+                            session_id: app.session_id.clone(),
+                            transport_id: app.transport_id.clone(),
+                            namespaces: app.namespaces.iter().map(|ref ns| ns.name.clone())
+                                .collect::<Vec<String>>(),
+                            display_name: app.display_name.clone(),
+                            status_text: app.status_text.clone(),
+                        }
+                    }).collect::<Vec<Application>>(),
+                    is_active_input: status_reply.status.is_active_input,
+                    is_stand_by: status_reply.status.is_stand_by,
+                    volume: Volume {
+                        level: status_reply.status.volume.level,
+                        muted: status_reply.status.volume.muted,
+                    },
+                };
+
+                ReceiverResponse::Status(status)
+            },
+            MESSAGE_TYPE_LAUNCH_ERROR => ReceiverResponse::LaunchError,
             _ => ReceiverResponse::NotImplemented(message_type.to_owned(), reply),
         };
 

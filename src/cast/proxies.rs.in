@@ -42,16 +42,30 @@ pub mod media {
         pub autoplay: bool,
     }
 
+    #[derive(Serialize, Debug)]
+    pub struct PauseRequest {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="mediaSessionId")]
+        pub media_session_id: String,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        #[serde(rename="customData")]
+        pub custom_data: CustomData,
+    }
+
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Media {
         #[serde(rename="contentId")]
         pub content_id: String,
-
         #[serde(rename="streamType", default)]
         pub stream_type: String,
-
         #[serde(rename="contentType")]
         pub content_type: String,
+        pub duration: Option<f32>,
     }
 
     #[derive(Serialize, Debug)]
@@ -67,20 +81,33 @@ pub mod media {
     }
 
     #[derive(Deserialize, Debug)]
-    pub struct MediaStatus {
+    pub struct Status {
+        #[serde(rename="mediaSessionId")]
+        pub media_session_id: i32,
         #[serde(default)]
         pub media: Option<Media>,
+        #[serde(rename="playbackRate")]
+        pub playback_rate: f32,
+        #[serde(rename="playerState")]
+        pub player_state: String,
+        #[serde(rename="idleReason")]
+        pub idle_reason: Option<String>,
+        #[serde(rename="currentTime")]
+        pub current_time: f32,
+        #[serde(rename="supportedMediaCommands")]
+        pub supported_media_commands: u8,
+
     }
 
     #[derive(Deserialize, Debug)]
-    pub struct MediaStatusReply {
+    pub struct StatusReply {
         #[serde(rename="requestId", default)]
         pub request_id: i32,
 
         #[serde(rename="type")]
         pub typ: String,
 
-        pub status: Vec<MediaStatus>,
+        pub status: Vec<Status>,
     }
 
     #[derive(Deserialize, Debug)]
@@ -149,11 +176,11 @@ pub mod receiver {
         #[serde(rename="type")]
         pub typ: String,
 
-        pub status: ReceiverStatus,
+        pub status: Status,
     }
 
     #[derive(Deserialize, Debug)]
-    pub struct ReceiverStatus {
+    pub struct Status {
         #[serde(default)]
         pub applications: Vec<Application>,
 
