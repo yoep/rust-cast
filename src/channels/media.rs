@@ -13,6 +13,7 @@ use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
 const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.media";
 
+const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
 const MESSAGE_TYPE_LOAD: &'static str = "LOAD";
 const MESSAGE_TYPE_PLAY: &'static str = "PLAY";
 const MESSAGE_TYPE_PAUSE: &'static str = "PAUSE";
@@ -166,11 +167,27 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         }
     }
 
+    pub fn get_status<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        let payload = try!(serde_json::to_string(
+            &proxies::media::GetStatusRequest {
+                typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
+                request_id: 1000,
+                media_session_id: None,
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
     pub fn load<S>(&self, destination: S, session_id: S, content_id: S, content_type: S,
                    stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
             &proxies::media::MediaRequest {
-                request_id: 1000,
+                request_id: 2000,
                 session_id: session_id.into().to_string(),
                 typ: MESSAGE_TYPE_LOAD.to_owned(),
 
@@ -198,7 +215,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
             &proxies::media::PauseRequest {
-                request_id: 2000,
+                request_id: 3000,
                 media_session_id: media_session_id.into().to_string(),
                 typ: MESSAGE_TYPE_PAUSE.to_owned(),
                 custom_data: proxies::media::CustomData::new(),
