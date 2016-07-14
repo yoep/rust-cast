@@ -113,6 +113,38 @@ impl FromStr for IdleReason {
     }
 }
 
+/// Describes the operation to perform with playback while seeking.
+#[derive(Debug)]
+pub enum ResumeState {
+    /// Forces media to start.
+    PlaybackStart,
+    /// Forces media to pause.
+    PlaybackPause,
+}
+
+impl FromStr for ResumeState {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<ResumeState, Error> {
+        match s {
+            "PLAYBACK_START" | "start"  => Ok(ResumeState::PlaybackStart),
+            "PLAYBACK_PAUSE" | "pause" => Ok(ResumeState::PlaybackPause),
+            _ => Err(Error::Internal(format!("Unknown resume state {}", s))),
+        }
+    }
+}
+
+impl ToString for ResumeState {
+    fn to_string(&self) -> String {
+        let resume_state = match *self {
+            ResumeState::PlaybackStart => "PLAYBACK_START",
+            ResumeState::PlaybackPause => "PLAYBACK_PAUSE",
+        };
+
+        resume_state.to_owned()
+    }
+}
+
 /// This data structure describes a media stream.
 #[derive(Debug)]
 pub struct Media {
@@ -132,12 +164,35 @@ pub struct Media {
 /// Describes the current status of the media artifact with respect to the session.
 #[derive(Debug)]
 pub struct Status {
+    /// Unique ID for the playback of this specific session. This ID is set by the receiver at LOAD
+    /// and can be used to identify a specific instance of a playback. For example, two playbacks of
+    /// "Wish you were here" within the same session would each have a unique mediaSessionId.
     pub media_session_id: i32,
+    /// Full description of the content that is being played back. Only be returned in a status
+    /// messages if the Media has changed.
     pub media: Option<Media>,
+    /// Indicates whether the media time is progressing, and at what rate. This is independent of
+    /// the player state since the media time can stop in any state. 1.0 is regular time, 0.5 is
+    /// slow motion.
     pub playback_rate: f32,
+    /// Describes the state of the player.
     pub player_state: PlayerState,
+    /// If the player_state is IDLE and the reason it became IDLE is known, this property is
+    /// provided. If the player is IDLE because it just started, this property will not be provided.
+    /// If the player is in any other state this property should not be provided.
     pub idle_reason: Option<IdleReason>,
-    pub current_time: f32,
+    /// The current position of the media player since the beginning of the content, in seconds.
+    /// If this a live stream content, then this field represents the time in seconds from the
+    /// beginning of the event that should be known to the player.
+    pub current_time: Option<f32>,
+    /// Flags describing which media commands the media player supports:
+    /// * `1` `Pause`;
+    /// * `2` `Seek`;
+    /// * `4` `Stream volume`;
+    /// * `8` `Stream mute`;
+    /// * `16` `Skip forward`;
+    /// * `32` `Skip backward`.
+    /// Combinations are described as summations; for example, Pause+Seek+StreamVolume+Mute == 15.
     pub supported_media_commands: u8,
 }
 
@@ -211,13 +266,81 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
         })
     }
 
-    pub fn pause<S>(&self, destination: S, media_session_id: S)
+    /// Pauses playback of the current content. Triggers a STATUS event notification to all sender
+    /// applications.
+    pub fn pause<S>(&self, destination: S, media_session_id: i32)
         -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
-            &proxies::media::PauseRequest {
+            &proxies::media::PlaybackGenericRequest {
                 request_id: 3000,
-                media_session_id: media_session_id.into().to_string(),
+                media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_PAUSE.to_owned(),
+                custom_data: proxies::media::CustomData::new(),
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    /// Begins playback of the content that was loaded with the load call, playback is continued
+    /// from the current time position.
+    pub fn play<S>(&self, destination: S, media_session_id: i32)
+        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        let payload = try!(serde_json::to_string(
+            &proxies::media::PlaybackGenericRequest {
+                request_id: 4000,
+                media_session_id: media_session_id,
+                typ: MESSAGE_TYPE_PLAY.to_owned(),
+                custom_data: proxies::media::CustomData::new(),
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    /// Stops playback of the current content. Triggers a STATUS event notification to all sender
+    /// applications. After this command the content will no longer be loaded and the
+    /// media_session_id is invalidated.
+    pub fn stop<S>(&self, destination: S, media_session_id: i32)
+        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        let payload = try!(serde_json::to_string(
+            &proxies::media::PlaybackGenericRequest {
+                request_id: 5000,
+                media_session_id: media_session_id,
+                typ: MESSAGE_TYPE_STOP.to_owned(),
+                custom_data: proxies::media::CustomData::new(),
+            }));
+
+        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_owned(),
+            source: self.sender.to_string(),
+            destination: destination.into().to_string(),
+            payload: CastMessagePayload::String(payload),
+        })
+    }
+
+    /// Sets the current position in the stream. Triggers a STATUS event notification to all sender
+    /// applications. If the position provided is outside the range of valid positions for the
+    /// current content, then the player should pick a valid position as close to the requested
+    /// position as possible.
+    pub fn seek<S>(&self, destination: S, media_session_id: i32, current_time: Option<f32>,
+                   resume_state: Option<ResumeState>)
+        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        let payload = try!(serde_json::to_string(
+            &proxies::media::PlaybackSeekRequest {
+                request_id: 6000,
+                media_session_id: media_session_id,
+                typ: MESSAGE_TYPE_SEEK.to_owned(),
+                current_time: current_time,
+                resume_state: resume_state.map(|s| s.to_string()),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
