@@ -1,6 +1,5 @@
 use std::borrow::Cow;
-use std::cell::RefCell;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::rc::Rc;
 
 use serde_json;
@@ -21,19 +20,19 @@ pub enum HeartbeatResponse {
     NotImplemented(String, serde_json::Value),
 }
 
-pub struct HeartbeatChannel<'a, W> where W: Write {
+pub struct HeartbeatChannel<'a, W> where W: Read + Write {
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
-    writer: Rc<RefCell<W>>,
+    message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
-    pub fn new<S>(sender: S, receiver: S, writer: Rc<RefCell<W>>)
+impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
+    pub fn new<S>(sender: S, receiver: S, message_manager: Rc<MessageManager<W>>)
         -> HeartbeatChannel<'a, W> where S: Into<Cow<'a, str>> {
         HeartbeatChannel {
             sender: sender.into(),
             receiver: receiver.into(),
-            writer: writer,
+            message_manager: message_manager,
         }
     }
 
@@ -43,7 +42,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
                 typ: MESSAGE_TYPE_PING.to_owned()
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
@@ -57,7 +56,7 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Write {
                 typ: MESSAGE_TYPE_PONG.to_owned()
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),

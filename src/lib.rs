@@ -15,7 +15,6 @@ pub mod message_manager;
 pub mod channels;
 
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::net::TcpStream;
 use std::rc::Rc;
 
@@ -43,14 +42,14 @@ pub enum ChannelMessage {
     Media(MediaResponse),
     /// Message to be processed by `ReceiverChannel`.
     Receiver(ReceiverResponse),
-    /// Raw message is returned when built-in channels can't process it (eg. because of unknown
+    /// Raw message is returned when built-in channels can't process it (e.g. because of unknown
     /// `namespace`).
     Raw(CastMessage),
 }
 
 /// Structure that manages connection to a cast device.
 pub struct CastDevice<'a> {
-    stream: Rc<RefCell<SslStream<TcpStream>>>,
+    message_manager: Rc<MessageManager<SslStream<TcpStream>>>,
 
     /// Channel that manages connection responses/requests.
     pub connection: ConnectionChannel<'a, SslStream<TcpStream>>,
@@ -61,7 +60,7 @@ pub struct CastDevice<'a> {
     /// Channel that manages various media stuff.
     pub media: MediaChannel<'a, SslStream<TcpStream>>,
 
-    /// Channel that manages receiving platform (eg. Chromecast).
+    /// Channel that manages receiving platform (e.g. Chromecast).
     pub receiver: ReceiverChannel<'a, SslStream<TcpStream>>,
 }
 
@@ -82,7 +81,7 @@ impl<'a> CastDevice<'a> {
     /// # Errors
     ///
     /// This method may fail if connection to Cast device can't be established for some reason
-    /// (eg. wrong host name or port).
+    /// (e.g. wrong host name or port).
     ///
     /// # Return value
     ///
@@ -99,17 +98,17 @@ impl<'a> CastDevice<'a> {
 
         debug!("Connection with {}:{} successfully established.", host, port);
 
-        let ssl_stream_rc = Rc::new(RefCell::new(ssl_stream));
+        let message_manager_rc = Rc::new(MessageManager::new(ssl_stream));
 
         let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                              ssl_stream_rc.clone());
-        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, ssl_stream_rc.clone());
+                                              message_manager_rc.clone());
+        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
         let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                            ssl_stream_rc.clone());
-        let media = MediaChannel::new(DEFAULT_SENDER_ID, ssl_stream_rc.clone());
+                                            message_manager_rc.clone());
+        let media = MediaChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
 
         Ok(CastDevice {
-            stream: ssl_stream_rc,
+            message_manager: message_manager_rc,
             heartbeat: heartbeat,
             connection: connection,
             receiver: receiver,
@@ -117,7 +116,7 @@ impl<'a> CastDevice<'a> {
         })
     }
 
-    /// Waits for any message returned by cast device (eg. Chromecast) and returns its parsed
+    /// Waits for any message returned by cast device (e.g. Chromecast) and returns its parsed
     /// version.
     ///
     /// # Examples
@@ -139,7 +138,7 @@ impl<'a> CastDevice<'a> {
     ///
     /// Parsed channel message.
     pub fn receive(&self) -> Result<ChannelMessage, Error> {
-        let cast_message = try!(MessageManager::receive(&mut *self.stream.borrow_mut()));
+        let cast_message = try!(self.message_manager.receive());
 
         if self.connection.can_handle(&cast_message) {
             return Ok(ChannelMessage::Connection(try!(self.connection.parse(&cast_message))));

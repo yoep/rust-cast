@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::io::{Read, Write};
 
 use cast::cast_channel;
@@ -5,7 +6,7 @@ use utils;
 use errors::Error;
 
 /// Type of the payload that `CastMessage` can have.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CastMessagePayload {
     /// Payload represented by UTF-8 string (usually it's just a JSON string).
     String(String),
@@ -14,7 +15,7 @@ pub enum CastMessagePayload {
 }
 
 /// Base structure that represents messages that are exchanged between Receiver and Sender.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CastMessage {
     /// A namespace is a labeled protocol. That is, messages that are exchanged throughout the
     /// Cast ecosystem utilize namespaces to identify the protocol of the message being sent.
@@ -29,10 +30,27 @@ pub struct CastMessage {
 
 /// Static structure that is responsible for (de)serializing and sending/receiving Cast protocol
 /// messages.
-pub struct MessageManager;
+pub struct MessageManager<S> where S: Write + Read {
+    message_buffer: RefCell<Vec<CastMessage>>,
+    stream: RefCell<S>,
+    request_conter: RefCell<i32>,
+}
 
-impl MessageManager {
-    pub fn send<W>(writer: &mut W, message: CastMessage) -> Result<(), Error> where W: Write {
+impl<S> MessageManager<S> where S: Write + Read {
+    pub fn new(stream: S) -> Self {
+        MessageManager {
+            stream: RefCell::new(stream),
+            message_buffer: RefCell::new(vec![]),
+            request_conter: RefCell::new(1),
+        }
+    }
+
+    /// Sends `message` to the Cast Device.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - `CastMessage` instance to be sent to the Cast Device.
+    pub fn send(&self, message: CastMessage) -> Result<(), Error> {
         let mut raw_message = cast_channel::CastMessage::new();
 
         raw_message.set_protocol_version(cast_channel::CastMessage_ProtocolVersion::CASTV2_1_0);
@@ -57,6 +75,8 @@ impl MessageManager {
         let message_length_buffer = try!(
             utils::write_u32_to_buffer(message_content_buffer.len() as u32));
 
+        let mut writer = &mut *self.stream.borrow_mut();
+
         try!(writer.write(&message_length_buffer));
         try!(writer.write(&message_content_buffer));
 
@@ -65,8 +85,84 @@ impl MessageManager {
         Ok(())
     }
 
-    pub fn receive<T>(reader: &mut T) -> Result<CastMessage, Error> where T: Read {
+    /// Waits for the next `CastMessage` available. Can also return existing message from the
+    /// internal message buffer containing messages that have been received previously, but haven't
+    /// been consumed for some reason (e.g. during `receive_find_map` call).
+    ///
+    /// # Return value
+    ///
+    /// `Result` containing parsed `CastMessage` or `Error`.
+    pub fn receive(&self) -> Result<CastMessage, Error> {
+        let mut message_buffer = self.message_buffer.borrow_mut();
+
+        // If we have messages in the buffer, let's return them from it.
+        match message_buffer.is_empty() {
+            false => Ok(message_buffer.remove(0)),
+            true => self.read(),
+        }
+    }
+
+    /// Waits for the next `CastMessage` for which `f` returns valid mapped value. Messages in which
+    /// `f` is not interested are placed into internal message buffer and can be later retrieved
+    /// with `receive`. This method always reads from the stream.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// message_manager.receive_find_map(|message| {
+    ///     if !can_handle(message) {
+    ///         return Ok(None);
+    ///     }
+    ///
+    ///     parse(message)
+    /// })
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - Function that analyzes and maps `CastMessage` to any other type. If message doesn't
+    /// look like something `f` is looking for, then `Ok(None)` should be returned so that message
+    /// is not lost and placed into internal message buffer for later retrieval.
+    ///
+    /// # Return value
+    ///
+    /// `Result` containing parsed `CastMessage` or `Error`.
+    pub fn receive_find_map<F, B>(&self, f: F)
+        -> Result<B, Error> where F: Fn(&CastMessage) -> Result<Option<B>, Error> {
+        loop {
+            let message = try!(self.read());
+
+            // If message is found, just return mapped result, otherwise keep unprocessed message
+            // in the buffer, it can be later retrieved with `receive`.
+            match try!(f(&message)) {
+                Some(r) => return Ok(r),
+                None => self.message_buffer.borrow_mut().push(message)
+            }
+        }
+    }
+
+    /// Generates unique integer number that is used in some requests to map them with the response.
+    ///
+    /// # Return value
+    ///
+    /// Unique (in the scope of this particular `MessageManager` instance) integer number.
+    pub fn generate_request_id(&self) -> i32 {
+        let request_id = self.request_conter.borrow().clone() + 1;
+
+        *self.request_conter.borrow_mut() = request_id;
+
+        request_id
+    }
+
+    /// Reads next `CastMessage` from the stream.
+    ///
+    /// # Return value
+    ///
+    /// `Result` containing parsed `CastMessage` or `Error`.
+    fn read(&self) -> Result<CastMessage, Error> {
         let mut buffer: [u8; 4] = [0; 4];
+
+        let mut reader = &mut *self.stream.borrow_mut();
 
         try!(reader.read_exact(&mut buffer));
 

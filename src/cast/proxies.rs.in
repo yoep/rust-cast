@@ -28,7 +28,7 @@ pub mod media {
         #[serde(rename="type")]
         pub typ: String,
 
-        #[serde(rename="mediaSessionId")]
+        #[serde(rename="mediaSessionId", skip_serializing_if="Option::is_none")]
         pub media_session_id: Option<i32>,
     }
 
@@ -98,6 +98,7 @@ pub mod media {
         pub stream_type: String,
         #[serde(rename="contentType")]
         pub content_type: String,
+        #[serde(skip_serializing_if="Option::is_none")]
         pub duration: Option<f32>,
     }
 
@@ -150,6 +151,35 @@ pub mod media {
 
         #[serde(rename="type")]
         typ: String,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct LoadFailedReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        typ: String,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct InvalidPlayerStateReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        typ: String,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct InvalidRequestReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        pub reason: Option<String>,
     }
 }
 
@@ -264,7 +294,23 @@ pub mod receiver {
 
     #[derive(Deserialize, Debug)]
     pub struct LaunchErrorReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
         #[serde(rename="type")]
         pub typ: String,
+
+        pub reason: Option<String>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    pub struct InvalidRequestReply {
+        #[serde(rename="requestId")]
+        pub request_id: i32,
+
+        #[serde(rename="type")]
+        pub typ: String,
+
+        pub reason: Option<String>,
     }
 }

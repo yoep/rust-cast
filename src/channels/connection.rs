@@ -1,6 +1,5 @@
 use std::borrow::Cow;
-use std::cell::RefCell;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::rc::Rc;
 
 use serde_json;
@@ -22,17 +21,17 @@ pub enum ConnectionResponse {
     NotImplemented(String, serde_json::Value),
 }
 
-pub struct ConnectionChannel<'a, W> where W: Write {
+pub struct ConnectionChannel<'a, W> where W: Read + Write {
     sender: Cow<'a, str>,
-    writer: Rc<RefCell<W>>,
+    message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> ConnectionChannel<'a, W> where W: Write {
-    pub fn new<S>(sender: S, writer: Rc<RefCell<W>>)
+impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
+    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>)
         -> ConnectionChannel<'a, W> where S: Into<Cow<'a, str>> {
         ConnectionChannel {
             sender: sender.into(),
-            writer: writer,
+            message_manager: message_manager,
         }
     }
 
@@ -43,7 +42,7 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
                 user_agent: CHANNEL_USER_AGENT.to_owned(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
@@ -58,7 +57,7 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Write {
                 user_agent: CHANNEL_USER_AGENT.to_owned(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),

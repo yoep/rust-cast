@@ -1,8 +1,7 @@
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::str::FromStr;
 use std::string::ToString;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::rc::Rc;
 
 use serde_json;
@@ -21,6 +20,9 @@ const MESSAGE_TYPE_STOP: &'static str = "STOP";
 const MESSAGE_TYPE_SEEK: &'static str = "SEEK";
 const MESSAGE_TYPE_MEDIA_STATUS: &'static str = "MEDIA_STATUS";
 const MESSAGE_TYPE_LOAD_CANCELLED: &'static str = "LOAD_CANCELLED";
+const MESSAGE_TYPE_LOAD_FAILED: &'static str = "LOAD_FAILED";
+const MESSAGE_TYPE_INVALID_PLAYER_STATE: &'static str = "INVALID_PLAYER_STATE";
+const MESSAGE_TYPE_INVALID_REQUEST: &'static str = "INVALID_REQUEST";
 
 /// Describes the way cast device should stream content.
 #[derive(Debug)]
@@ -39,8 +41,8 @@ impl FromStr for StreamType {
 
     fn from_str(s: &str) -> Result<StreamType, Error> {
         match s {
-            "BUFFERED"  => Ok(StreamType::Buffered),
-            "LIVE" => Ok(StreamType::Live),
+            "BUFFERED" | "buffered"  => Ok(StreamType::Buffered),
+            "LIVE" | "live" => Ok(StreamType::Live),
             _ => Ok(StreamType::None),
         }
     }
@@ -84,6 +86,20 @@ impl FromStr for PlayerState {
         }
     }
 }
+
+impl ToString for PlayerState {
+    fn to_string(&self) -> String {
+        let player_state = match *self {
+            PlayerState::Idle => "IDLE",
+            PlayerState::Playing => "PLAYING",
+            PlayerState::Buffering => "BUFFERING",
+            PlayerState::Paused => "PAUSED",
+        };
+
+        player_state.to_owned()
+    }
+}
+
 
 /// Describes possible player idle reasons.
 #[derive(Debug)]
@@ -164,6 +180,15 @@ pub struct Media {
 /// Describes the current status of the media artifact with respect to the session.
 #[derive(Debug)]
 pub struct Status {
+    /// Unique id of the request that requested the status.
+    pub request_id: i32,
+    /// Detailed status of every media status entry.
+    pub entries: Vec<StatusEntry>,
+}
+
+/// Detailed status of the media artifact with respect to the session.
+#[derive(Debug)]
+pub struct StatusEntry {
     /// Unique ID for the playback of this specific session. This ID is set by the receiver at LOAD
     /// and can be used to identify a specific instance of a playback. For example, two playbacks of
     /// "Wish you were here" within the same session would each have a unique mediaSessionId.
@@ -196,61 +221,149 @@ pub struct Status {
     pub supported_media_commands: u8,
 }
 
+/// Describes the load cancelled error.
+#[derive(Debug)]
+pub struct LoadCancelled {
+    /// Unique id of the request that caused this error.
+    pub request_id: i32,
+}
+
+/// Describes the load failed error.
+#[derive(Debug)]
+pub struct LoadFailed {
+    /// Unique id of the request that caused this error.
+    pub request_id: i32,
+}
+
+/// Describes the invalid player state error.
+#[derive(Debug)]
+pub struct InvalidPlayerState {
+    /// Unique id of the request that caused this error.
+    pub request_id: i32,
+}
+
+/// Describes the invalid request error.
+#[derive(Debug)]
+pub struct InvalidRequest {
+    /// Unique id of the invalid request.
+    pub request_id: i32,
+    /// Description of the invalid request reason if available.
+    pub reason: Option<String>,
+}
+
 /// Represents all currently supported incoming messages that media channel can handle.
 #[derive(Debug)]
 pub enum MediaResponse {
     /// Statuses of the currently active media.
-    Status(Vec<Status>),
-    /// Information about cancelled media.
-    LoadCancelled,
+    Status(Status),
+    /// Sent when the load request was cancelled (a second load request was received).
+    LoadCancelled(LoadCancelled),
+    /// Sent when the load request failed. The player state will be IDLE.
+    LoadFailed(LoadFailed),
+    /// Sent when the request by the sender can not be fulfilled because the player is not in a
+    /// valid state. For example, if the application has not created a media element yet.
+    InvalidPlayerState(InvalidPlayerState),
+    /// Error indicating that request is not valid.
+    InvalidRequest(InvalidRequest),
     /// Used every time when channel can't parse the message. Associated data contains `type` string
     /// field and raw JSON data returned from cast device.
     NotImplemented(String, serde_json::Value),
 }
 
-pub struct MediaChannel<'a, W> where W: Write {
+pub struct MediaChannel<'a, W> where W: Read + Write {
     sender: Cow<'a, str>,
-    writer: Rc<RefCell<W>>,
+    message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> MediaChannel<'a, W> where W: Write {
-    pub fn new<S>(sender: S, writer: Rc<RefCell<W>>)
+impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
+    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>)
         -> MediaChannel<'a, W> where S: Into<Cow<'a, str>> {
         MediaChannel {
             sender: sender.into(),
-            writer: writer,
+            message_manager: message_manager,
         }
     }
 
-    pub fn get_status<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    /// Retrieves status of the cast device media session.
+    ///
+    /// # Arguments
+    ///
+    /// * `destination` - `protocol` identifier of specific app media session;
+    /// * `media_session_id` - Media session ID of the media for which the media status should be
+    /// returned. If none is provided, then the status for all media session IDs will be provided.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
+    pub fn get_status<S>(&self, destination: S, media_session_id: Option<i32>)
+        -> Result<Status, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::GetStatusRequest {
                 typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
-                request_id: 1000,
-                media_session_id: None,
+                request_id: request_id,
+                media_session_id: media_session_id,
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
+        }));
+
+        self.message_manager.receive_find_map(|message| {
+            if !self.can_handle(message) {
+                return Ok(None);
+            }
+
+            match try!(self.parse(message)) {
+                MediaResponse::Status(status) => {
+                    if status.request_id == request_id {
+                        return Ok(Some(status));
+                    }
+                },
+                MediaResponse::InvalidRequest(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            format!("Invalid request ({}).",
+                                    error.reason.unwrap_or("Unknown".to_owned())))
+                        );
+                    }
+                },
+                _ => {}
+            }
+
+            return Ok(None);
         })
     }
 
-    pub fn load<S>(&self, destination: S, session_id: S, content_id: S, content_type: S,
-                   stream_type: StreamType) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    /// Loads provided media to the application.
+    ///
+    /// # Arguments
+    /// * `destination` - `protocol` of the application to load media with (e.g. `web-1`);
+    /// * `session_id` - Current session identifier of the player application;
+    /// * `media` - `Media` instance that describes the media we'd like to load.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
+    pub fn load<S>(&self, destination: S, session_id: S, media: Media)
+        -> Result<Status, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::MediaRequest {
-                request_id: 2000,
+                request_id: request_id,
                 session_id: session_id.into().to_string(),
                 typ: MESSAGE_TYPE_LOAD.to_owned(),
 
                 media: proxies::media::Media {
-                    content_id: content_id.into().to_string(),
-                    stream_type: stream_type.to_string(),
-                    content_type: content_type.into().to_string(),
-                    duration: None,
+                    content_id: media.content_id.clone(),
+                    stream_type: media.stream_type.to_string(),
+                    content_type: media.content_type.clone(),
+                    duration: media.duration,
                 },
 
                 current_time: 0_f64,
@@ -258,85 +371,189 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
                 custom_data: proxies::media::CustomData::new(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
+        }));
+
+        // Once media is loaded cast receiver device should emit status update event, or load failed
+        // event if something went wrong.
+        self.message_manager.receive_find_map(|message| {
+            if !self.can_handle(message) {
+                return Ok(None);
+            }
+
+            match try!(self.parse(message)) {
+                MediaResponse::Status(status) => {
+                    if status.request_id == request_id {
+                        return Ok(Some(status));
+                    }
+
+                    // [WORKAROUND] In some cases we don't receive response (e.g. from YouTube app),
+                    // so let's just wait for the response with the media we're interested in and
+                    // return it.
+                    let has_media = {
+                        status.entries.iter().find(|ref entry| {
+                            if let Some(ref loaded_media) = entry.media {
+                                return loaded_media.content_id == media.content_id;
+                            }
+
+                            false
+                        }).is_some()
+                    };
+
+                    if has_media {
+                        return Ok(Some(status));
+                    }
+                },
+                MediaResponse::LoadFailed(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal("Failed to load media.".to_owned()));
+                    }
+                },
+                MediaResponse::LoadCancelled(error) => {
+                    if error.request_id == request_id {
+                        return Err(
+                            Error::Internal("Load cancelled by another request.".to_owned()));
+                    }
+                },
+                MediaResponse::InvalidPlayerState(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            "Load failed because of invalid player state.".to_owned()));
+                    }
+                },
+                _ => {}
+            }
+
+            return Ok(None);
         })
     }
 
     /// Pauses playback of the current content. Triggers a STATUS event notification to all sender
     /// applications.
+    ///
+    /// # Arguments
+    ///
+    /// * `destination` - `protocol` of the media application (e.g. `web-1`);
+    /// * `media_session_id` - ID of the media session to be paused.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn pause<S>(&self, destination: S, media_session_id: i32)
-        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
-                request_id: 3000,
+                request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_PAUSE.to_owned(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        })
+        }));
+
+        self.receive_status_entry(request_id, media_session_id)
     }
 
     /// Begins playback of the content that was loaded with the load call, playback is continued
     /// from the current time position.
+    ///
+    /// # Arguments
+    ///
+    /// * `destination` - `protocol` of the media application (e.g. `web-1`);
+    /// * `media_session_id` - ID of the media session to be played.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn play<S>(&self, destination: S, media_session_id: i32)
-        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
-                request_id: 4000,
+                request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_PLAY.to_owned(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        })
+        }));
+
+        self.receive_status_entry(request_id, media_session_id)
     }
 
     /// Stops playback of the current content. Triggers a STATUS event notification to all sender
     /// applications. After this command the content will no longer be loaded and the
     /// media_session_id is invalidated.
+    ///
+    /// # Arguments
+    ///
+    /// * `destination` - `protocol` of the media application (e.g. `web-1`);
+    /// * `media_session_id` - ID of the media session to be stopped.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn stop<S>(&self, destination: S, media_session_id: i32)
-        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
-                request_id: 5000,
+                request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_STOP.to_owned(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        })
+        }));
+
+        self.receive_status_entry(request_id, media_session_id)
     }
 
     /// Sets the current position in the stream. Triggers a STATUS event notification to all sender
     /// applications. If the position provided is outside the range of valid positions for the
     /// current content, then the player should pick a valid position as close to the requested
     /// position as possible.
+    ///
+    /// # Arguments
+    ///
+    /// * `destination` - `protocol` of the media application (e.g. `web-1`);
+    /// * `media_session_id` - ID of the media session to seek in;
+    /// * `current_time` - Time in seconds to seek to.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn seek<S>(&self, destination: S, media_session_id: i32, current_time: Option<f32>,
                    resume_state: Option<ResumeState>)
-        -> Result<(), Error> where S: Into<Cow<'a, str>> {
+        -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
+        let request_id = self.message_manager.generate_request_id();
+
         let payload = try!(serde_json::to_string(
             &proxies::media::PlaybackSeekRequest {
-                request_id: 6000,
+                request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_SEEK.to_owned(),
                 current_time: current_time,
@@ -344,12 +561,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
                 custom_data: proxies::media::CustomData::new(),
             }));
 
-        MessageManager::send(&mut *self.writer.borrow_mut(), CastMessage {
+        try!(self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_owned(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        })
+        }));
+
+        self.receive_status_entry(request_id, media_session_id)
     }
 
     pub fn can_handle(&self, message: &CastMessage) -> bool {
@@ -371,11 +590,11 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_MEDIA_STATUS => {
-                let status_reply: proxies::media::StatusReply = try!(
+                let reply: proxies::media::StatusReply = try!(
                     serde_json::value::from_value(reply));
 
-                let statuses = status_reply.status.iter().map(|ref x| {
-                    Status {
+                let statuses_entries = reply.status.iter().map(|ref x| {
+                    StatusEntry {
                         media_session_id: x.media_session_id,
                         media: x.media.as_ref().map(|ref m| Media {
                             content_id: m.content_id.to_owned(),
@@ -392,12 +611,98 @@ impl<'a, W> MediaChannel<'a, W> where W: Write {
                     }
                 });
 
-                MediaResponse::Status(statuses.collect::<Vec<Status>>())
+                MediaResponse::Status(Status {
+                    request_id: reply.request_id,
+                    entries: statuses_entries.collect::<Vec<StatusEntry>>(),
+                })
             },
-            MESSAGE_TYPE_LOAD_CANCELLED => MediaResponse::LoadCancelled,
+            MESSAGE_TYPE_LOAD_CANCELLED => {
+                let reply: proxies::media::LoadCancelledReply = try!(
+                    serde_json::value::from_value(reply));
+
+                MediaResponse::LoadCancelled(LoadCancelled {
+                    request_id: reply.request_id,
+                })
+            },
+            MESSAGE_TYPE_LOAD_FAILED => {
+                let reply: proxies::media::LoadFailedReply = try!(
+                    serde_json::value::from_value(reply));
+
+                MediaResponse::LoadFailed(LoadFailed {
+                    request_id: reply.request_id,
+                })
+            },
+            MESSAGE_TYPE_INVALID_PLAYER_STATE => {
+                let reply: proxies::media::InvalidPlayerStateReply = try!(
+                    serde_json::value::from_value(reply));
+
+                MediaResponse::InvalidPlayerState(InvalidPlayerState {
+                    request_id: reply.request_id,
+                })
+            },
+            MESSAGE_TYPE_INVALID_REQUEST => {
+                let reply: proxies::media::InvalidRequestReply = try!(
+                    serde_json::value::from_value(reply));
+
+                MediaResponse::InvalidRequest(InvalidRequest {
+                    request_id: reply.request_id,
+                    reason: reply.reason,
+                })
+            },
             _ => MediaResponse::NotImplemented(message_type.to_owned(), reply),
         };
 
         Ok(response)
+    }
+
+    /// Waits for the status entry with specified `request_id` and `media_session_id`. This method
+    /// is very handy for the media playback methods where particular `StatusEntry` is required.
+    ///
+    /// # Arguments
+    ///
+    /// * `request_id` - ID of the request that caused status entry to be broadcasted.
+    /// * `media_session_id` - ID of the media session to receive.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
+    fn receive_status_entry(&self, request_id: i32, media_session_id: i32)
+        -> Result<StatusEntry, Error> {
+        self.message_manager.receive_find_map(|message| {
+            if !self.can_handle(message) {
+                return Ok(None);
+            }
+
+            match try!(self.parse(message)) {
+                MediaResponse::Status(mut status) => {
+                    if status.request_id == request_id {
+                        let position = status.entries.iter().position(|e| {
+                            e.media_session_id == media_session_id
+                        });
+
+                        return Ok(position.and_then(|position| {
+                            Some(status.entries.remove(position))
+                        }));
+                    }
+                },
+                MediaResponse::InvalidPlayerState(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            "Request failed because of invalid player state.".to_owned()));
+                    }
+                },
+                MediaResponse::InvalidRequest(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            format!("Invalid request ({}).",
+                                    error.reason.unwrap_or("Unknown".to_owned())))
+                        );
+                    }
+                },
+                _ => {}
+            }
+
+            return Ok(None);
+        })
     }
 }
