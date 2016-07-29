@@ -584,7 +584,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
-            .and_then(|property| property.as_string())
+            .and_then(|property| property.as_str())
             .unwrap_or("")
             .to_owned();
 
