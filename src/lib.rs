@@ -18,7 +18,7 @@ use std::borrow::Cow;
 use std::net::TcpStream;
 use std::rc::Rc;
 
-use openssl::ssl::{SslContext, SslStream, SslMethod};
+use openssl::ssl::{SslConnectorBuilder, SslStream, SslMethod};
 
 use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::connection::{ConnectionChannel, ConnectionResponse};
@@ -92,9 +92,9 @@ impl<'a> CastDevice<'a> {
 
         debug!("Establishing connection with cast device at {}:{}...", host, port);
 
-        let ssl_context = try!(SslContext::new(SslMethod::Sslv23));
+        let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
         let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
-        let ssl_stream = try!(SslStream::connect(&ssl_context, tcp_stream));
+        let ssl_stream = try!(connector.connect(host.as_ref(), tcp_stream));
 
         debug!("Connection with {}:{} successfully established.", host, port);
 

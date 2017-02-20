@@ -1,9 +1,45 @@
 use std::error::Error as StdError;
-use std::fmt;
+use std::fmt::{Display, Formatter, Result};
 use std::io::Error as IoError;
-use openssl::ssl::error::SslError;
+use std::net::TcpStream;
+use openssl::error::ErrorStack;
+use openssl::ssl::HandshakeError;
 use protobuf::ProtobufError;
 use serde_json::error::Error as SerializationError;
+
+/// Consolidates possible error types that can occur in the OpenSSL lib.
+#[derive(Debug)]
+pub enum SslError {
+    /// This variant includes everything related to the existing SSL connection.
+    Generic(ErrorStack),
+    /// This variant describes an error or intermediate state after a TLS handshake attempt.
+    Handshake(HandshakeError<TcpStream>),
+}
+
+impl Display for SslError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match *self {
+            SslError::Generic(ref err) => Display::fmt(&err, f),
+            SslError::Handshake(ref err) => Display::fmt(&err, f),
+        }
+    }
+}
+
+impl StdError for SslError {
+    fn description(&self) -> &str {
+        match self {
+            &SslError::Generic(ref e) => e.description(),
+            &SslError::Handshake(ref e) => e.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match self {
+            &SslError::Generic(ref e) => e.cause(),
+            &SslError::Handshake(ref e) => e.cause(),
+        }
+    }
+}
 
 /// Consolidates possible error types that can occur in the lib.
 #[derive(Debug)]
@@ -18,17 +54,18 @@ pub enum Error {
     /// messages.
     Serialization(SerializationError),
     /// This variant includes any error that comes from OpenSSL.
-    Ssl(SslError)
+    Ssl(SslError),
+
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
             Error::Internal(ref message) => f.write_str(message),
-            Error::Io(ref err) => err.fmt(f),
-            Error::Protobuf(ref err) => err.fmt(f),
-            Error::Serialization(ref err) => err.fmt(f),
-            Error::Ssl(ref err) => err.fmt(f),
+            Error::Io(ref err) => Display::fmt(&err, f),
+            Error::Protobuf(ref err) => Display::fmt(&err, f),
+            Error::Serialization(ref err) => Display::fmt(&err, f),
+            Error::Ssl(ref err) => Display::fmt(&err, f),
         }
     }
 }
@@ -73,8 +110,14 @@ impl From<SerializationError> for Error {
     }
 }
 
-impl From<SslError> for Error {
-    fn from(err: SslError) -> Error {
-        Error::Ssl(err)
+impl From<ErrorStack> for Error {
+    fn from(err: ErrorStack) -> Error {
+        Error::Ssl(SslError::Generic(err))
+    }
+}
+
+impl From<HandshakeError<TcpStream>> for Error {
+    fn from(err: HandshakeError<TcpStream>) -> Error {
+        Error::Ssl(SslError::Handshake(err))
     }
 }
