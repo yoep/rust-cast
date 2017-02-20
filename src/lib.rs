@@ -18,7 +18,7 @@ use std::borrow::Cow;
 use std::net::TcpStream;
 use std::rc::Rc;
 
-use openssl::ssl::{SslConnectorBuilder, SslStream, SslMethod};
+use openssl::ssl::{SslConnectorBuilder, SslStream, SslMethod, SSL_VERIFY_NONE};
 
 use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::connection::{ConnectionChannel, ConnectionResponse};
@@ -94,27 +94,55 @@ impl<'a> CastDevice<'a> {
 
         let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
         let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
-        let ssl_stream = try!(connector.connect(host.as_ref(), tcp_stream));
+
+        CastDevice::connect_to_device(try!(connector.connect(host.as_ref(), tcp_stream)))
+    }
+
+    /// Connects to the cast device using host name and port _without_ host verification. Use on
+    /// your own risk!
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let device = try!(CastDevice::connect_without_host_verification(
+    ///     args.flag_address.unwrap(), args.flag_port));
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - Cast device host name.
+    /// * `port` - Cast device port number.
+    ///
+    /// # Errors
+    ///
+    /// This method may fail if connection to Cast device can't be established for some reason
+    /// (e.g. wrong host name or port).
+    ///
+    /// # Return value
+    ///
+    /// Instance of `CastDevice` that allows you to manage connection.
+    pub fn connect_without_host_verification<S>(host: S, port: u16)
+                      -> Result<CastDevice<'a>, Error> where S: Into<Cow<'a, str>> {
+        let host = host.into();
+
+        debug!("Establishing non-verified connection with cast device at {}:{}...", host, port);
+
+        let mut builder = try!(SslConnectorBuilder::new(SslMethod::tls()));
+
+        {
+            let mut ctx_builder = builder.builder_mut();
+            ctx_builder.set_verify(SSL_VERIFY_NONE);
+        }
+
+        let connector = builder.build();
+        let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
 
         debug!("Connection with {}:{} successfully established.", host, port);
 
-        let message_manager_rc = Rc::new(MessageManager::new(ssl_stream));
-
-        let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                              message_manager_rc.clone());
-        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
-        let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                            message_manager_rc.clone());
-        let media = MediaChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
-
-        Ok(CastDevice {
-            message_manager: message_manager_rc,
-            heartbeat: heartbeat,
-            connection: connection,
-            receiver: receiver,
-            media: media,
-        })
+        CastDevice::connect_to_device(
+            try!(connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(tcp_stream)))
     }
+
 
     /// Waits for any message returned by cast device (e.g. Chromecast) and returns its parsed
     /// version.
@@ -157,5 +185,33 @@ impl<'a> CastDevice<'a> {
         }
 
         Ok(ChannelMessage::Raw(cast_message))
+    }
+
+    /// Connects to the cast device using provided ssl stream.
+    ///
+    /// # Arguments
+    ///
+    /// * `ssl_stream` - SSL Stream for the TCP connection established with the device.
+    ///
+    /// # Return value
+    ///
+    /// Instance of `CastDevice` that allows you to manage connection.
+    fn connect_to_device(ssl_stream: SslStream<TcpStream>) -> Result<CastDevice<'a>, Error> {
+        let message_manager_rc = Rc::new(MessageManager::new(ssl_stream));
+
+        let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
+                                              message_manager_rc.clone());
+        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
+        let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
+                                            message_manager_rc.clone());
+        let media = MediaChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
+
+        Ok(CastDevice {
+            message_manager: message_manager_rc,
+            heartbeat: heartbeat,
+            connection: connection,
+            receiver: receiver,
+            media: media,
+        })
     }
 }
