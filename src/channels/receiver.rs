@@ -146,7 +146,7 @@ impl FromStr for CastDeviceApp {
             APP_DEFAULT_MEDIA_RECEIVER_ID | "default" => CastDeviceApp::DefaultMediaReceiver,
             APP_BACKDROP_ID | "backdrop" => CastDeviceApp::Backdrop,
             APP_YOUTUBE_ID | "youtube" => CastDeviceApp::YouTube,
-            custom @ _ => CastDeviceApp::Custom(custom.to_owned())
+            custom @ _ => CastDeviceApp::Custom(custom.to_string())
         };
 
         Ok(app)
@@ -156,10 +156,10 @@ impl FromStr for CastDeviceApp {
 impl ToString for CastDeviceApp {
     fn to_string(&self) -> String {
         match *self {
-            CastDeviceApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_owned(),
-            CastDeviceApp::Backdrop => APP_BACKDROP_ID.to_owned(),
-            CastDeviceApp::YouTube => APP_YOUTUBE_ID.to_owned(),
-            CastDeviceApp::Custom(ref app_id) => app_id.to_owned(),
+            CastDeviceApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_string(),
+            CastDeviceApp::Backdrop => APP_BACKDROP_ID.to_string(),
+            CastDeviceApp::YouTube => APP_YOUTUBE_ID.to_string(),
+            CastDeviceApp::Custom(ref app_id) => app_id.to_string(),
         }
     }
 }
@@ -196,13 +196,13 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
         let payload = try!(serde_json::to_string(
             &proxies::receiver::AppLaunchRequest {
-                typ: MESSAGE_TYPE_LAUNCH.to_owned(),
+                typ: MESSAGE_TYPE_LAUNCH.to_string(),
                 request_id: request_id,
                 app_id: app.to_string(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
             payload: CastMessagePayload::String(payload),
@@ -225,7 +225,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
                             format!("Could not run application ({}).",
-                                    error.reason.unwrap_or("Unknown".to_owned())))
+                                    error.reason.unwrap_or("Unknown".to_string())))
                         );
                     }
                 },
@@ -245,13 +245,13 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
         let payload = try!(serde_json::to_string(
             &proxies::receiver::AppStopRequest {
-                typ: MESSAGE_TYPE_STOP.to_owned(),
+                typ: MESSAGE_TYPE_STOP.to_string(),
                 request_id: request_id,
                 session_id: session_id.into(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
             payload: CastMessagePayload::String(payload),
@@ -274,7 +274,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
                             format!("Invalid request ({}).",
-                                    error.reason.unwrap_or("Unknown".to_owned())))
+                                    error.reason.unwrap_or("Unknown".to_string())))
                         );
                     }
                 },
@@ -295,13 +295,13 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
         let payload = try!(serde_json::to_string(
             &proxies::receiver::GetStatusRequest {
-                typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
+                typ: MESSAGE_TYPE_GET_STATUS.to_string(),
                 request_id: request_id,
             }));
 
         try!(self.message_manager.send(
             CastMessage {
-                namespace: CHANNEL_NAMESPACE.to_owned(),
+                namespace: CHANNEL_NAMESPACE.to_string(),
                 source: self.sender.to_string(),
                 destination: self.receiver.to_string(),
                 payload: CastMessagePayload::String(payload),
@@ -344,7 +344,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
         let payload = try!(serde_json::to_string(
             &proxies::receiver::SetVolumeRequest {
-                typ: MESSAGE_TYPE_SET_VOLUME.to_owned(),
+                typ: MESSAGE_TYPE_SET_VOLUME.to_string(),
                 request_id: request_id,
                 volume: proxies::receiver::Volume {
                     level: volume.level,
@@ -353,7 +353,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
             payload: CastMessagePayload::String(payload),
@@ -383,14 +383,14 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
         let reply = match message.payload {
             CastMessagePayload::String(ref payload) => try!(
                 serde_json::from_str::<serde_json::Value>(payload)),
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
-            .to_owned();
+            .to_string();
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_RECEIVER_STATUS => {
@@ -438,7 +438,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                     reason: reply.reason,
                 })
             },
-            _ => ReceiverResponse::NotImplemented(message_type.to_owned(), reply),
+            _ => ReceiverResponse::NotImplemented(message_type.to_string(), reply),
         };
 
         Ok(response)

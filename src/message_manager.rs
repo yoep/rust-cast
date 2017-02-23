@@ -179,12 +179,12 @@ impl<S> MessageManager<S> where S: Write + Read {
         debug!("Message received: {:?}", raw_message);
 
         Ok(CastMessage {
-            namespace: raw_message.get_namespace().to_owned(),
-            source: raw_message.get_source_id().to_owned(),
-            destination: raw_message.get_destination_id().to_owned(),
+            namespace: raw_message.get_namespace().to_string(),
+            source: raw_message.get_source_id().to_string(),
+            destination: raw_message.get_destination_id().to_string(),
             payload: match raw_message.get_payload_type() {
                 cast_channel::CastMessage_PayloadType::STRING => CastMessagePayload::String(
-                    raw_message.get_payload_utf8().to_owned()),
+                    raw_message.get_payload_utf8().to_string()),
                 cast_channel::CastMessage_PayloadType::BINARY => CastMessagePayload::Binary(
                     raw_message.get_payload_binary().to_owned()),
             }

@@ -39,11 +39,11 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
     pub fn ping(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
             &proxies::heartbeat::HeartBeatRequest {
-                typ: MESSAGE_TYPE_PING.to_owned()
+                typ: MESSAGE_TYPE_PING.to_string()
             }));
 
         self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
             payload: CastMessagePayload::String(payload),
@@ -53,11 +53,11 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
     pub fn pong(&self) -> Result<(), Error> {
         let payload = try!(serde_json::to_string(
             &proxies::heartbeat::HeartBeatRequest {
-                typ: MESSAGE_TYPE_PONG.to_owned()
+                typ: MESSAGE_TYPE_PONG.to_string()
             }));
 
         self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: self.receiver.to_string(),
             payload: CastMessagePayload::String(payload),
@@ -72,19 +72,19 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
         let reply = match message.payload {
             CastMessagePayload::String(ref payload) => try!(
                 serde_json::from_str::<serde_json::Value>(payload)),
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
-            .to_owned();
+            .to_string();
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_PING => HeartbeatResponse::Ping,
             MESSAGE_TYPE_PONG => HeartbeatResponse::Pong,
-            _ => HeartbeatResponse::NotImplemented(message_type.to_owned(), reply),
+            _ => HeartbeatResponse::NotImplemented(message_type.to_string(), reply),
         };
 
         Ok(response)

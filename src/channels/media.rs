@@ -56,7 +56,7 @@ impl ToString for StreamType {
             StreamType::Live => "LIVE",
         };
 
-        stream_type.to_owned()
+        stream_type.to_string()
     }
 }
 
@@ -96,7 +96,7 @@ impl ToString for PlayerState {
             PlayerState::Paused => "PAUSED",
         };
 
-        player_state.to_owned()
+        player_state.to_string()
     }
 }
 
@@ -157,7 +157,7 @@ impl ToString for ResumeState {
             ResumeState::PlaybackPause => "PLAYBACK_PAUSE",
         };
 
-        resume_state.to_owned()
+        resume_state.to_string()
     }
 }
 
@@ -301,13 +301,13 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
 
         let payload = try!(serde_json::to_string(
             &proxies::media::GetStatusRequest {
-                typ: MESSAGE_TYPE_GET_STATUS.to_owned(),
+                typ: MESSAGE_TYPE_GET_STATUS.to_string(),
                 request_id: request_id,
                 media_session_id: media_session_id,
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -328,7 +328,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
                             format!("Invalid request ({}).",
-                                    error.reason.unwrap_or("Unknown".to_owned())))
+                                    error.reason.unwrap_or("Unknown".to_string())))
                         );
                     }
                 },
@@ -357,7 +357,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             &proxies::media::MediaRequest {
                 request_id: request_id,
                 session_id: session_id.into().to_string(),
-                typ: MESSAGE_TYPE_LOAD.to_owned(),
+                typ: MESSAGE_TYPE_LOAD.to_string(),
 
                 media: proxies::media::Media {
                     content_id: media.content_id.clone(),
@@ -372,7 +372,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -410,19 +410,19 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 },
                 MediaResponse::LoadFailed(error) => {
                     if error.request_id == request_id {
-                        return Err(Error::Internal("Failed to load media.".to_owned()));
+                        return Err(Error::Internal("Failed to load media.".to_string()));
                     }
                 },
                 MediaResponse::LoadCancelled(error) => {
                     if error.request_id == request_id {
                         return Err(
-                            Error::Internal("Load cancelled by another request.".to_owned()));
+                            Error::Internal("Load cancelled by another request.".to_string()));
                     }
                 },
                 MediaResponse::InvalidPlayerState(error) => {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
-                            "Load failed because of invalid player state.".to_owned()));
+                            "Load failed because of invalid player state.".to_string()));
                     }
                 },
                 _ => {}
@@ -451,12 +451,12 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
-                typ: MESSAGE_TYPE_PAUSE.to_owned(),
+                typ: MESSAGE_TYPE_PAUSE.to_string(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -484,12 +484,12 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
-                typ: MESSAGE_TYPE_PLAY.to_owned(),
+                typ: MESSAGE_TYPE_PLAY.to_string(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -518,12 +518,12 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
-                typ: MESSAGE_TYPE_STOP.to_owned(),
+                typ: MESSAGE_TYPE_STOP.to_string(),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -555,14 +555,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
             &proxies::media::PlaybackSeekRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
-                typ: MESSAGE_TYPE_SEEK.to_owned(),
+                typ: MESSAGE_TYPE_SEEK.to_string(),
                 current_time: current_time,
                 resume_state: resume_state.map(|s| s.to_string()),
                 custom_data: proxies::media::CustomData::new(),
             }));
 
         try!(self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -579,14 +579,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         let reply = match message.payload {
             CastMessagePayload::String(ref payload) => try!(
                 serde_json::from_str::<serde_json::Value>(payload)),
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
-            .to_owned();
+            .to_string();
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_MEDIA_STATUS => {
@@ -597,9 +597,9 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                     StatusEntry {
                         media_session_id: x.media_session_id,
                         media: x.media.as_ref().map(|ref m| Media {
-                            content_id: m.content_id.to_owned(),
+                            content_id: m.content_id.to_string(),
                             stream_type: StreamType::from_str(m.stream_type.as_ref()).unwrap(),
-                            content_type: m.content_type.to_owned(),
+                            content_type: m.content_type.to_string(),
                             duration: m.duration,
                         }),
                         playback_rate: x.playback_rate,
@@ -649,7 +649,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                     reason: reply.reason,
                 })
             },
-            _ => MediaResponse::NotImplemented(message_type.to_owned(), reply),
+            _ => MediaResponse::NotImplemented(message_type.to_string(), reply),
         };
 
         Ok(response)
@@ -688,14 +688,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 MediaResponse::InvalidPlayerState(error) => {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
-                            "Request failed because of invalid player state.".to_owned()));
+                            "Request failed because of invalid player state.".to_string()));
                     }
                 },
                 MediaResponse::InvalidRequest(error) => {
                     if error.request_id == request_id {
                         return Err(Error::Internal(
                             format!("Invalid request ({}).",
-                                    error.reason.unwrap_or("Unknown".to_owned())))
+                                    error.reason.unwrap_or("Unknown".to_string())))
                         );
                     }
                 },

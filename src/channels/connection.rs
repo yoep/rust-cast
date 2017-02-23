@@ -38,12 +38,12 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
     pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
             &proxies::connection::ConnectionRequest {
-                typ: MESSAGE_TYPE_CONNECT.to_owned(),
-                user_agent: CHANNEL_USER_AGENT.to_owned(),
+                typ: MESSAGE_TYPE_CONNECT.to_string(),
+                user_agent: CHANNEL_USER_AGENT.to_string(),
             }));
 
         self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -53,12 +53,12 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
     pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
         let payload = try!(serde_json::to_string(
             &proxies::connection::ConnectionRequest {
-                typ: MESSAGE_TYPE_CLOSE.to_owned(),
-                user_agent: CHANNEL_USER_AGENT.to_owned(),
+                typ: MESSAGE_TYPE_CLOSE.to_string(),
+                user_agent: CHANNEL_USER_AGENT.to_string(),
             }));
 
         self.message_manager.send(CastMessage {
-            namespace: CHANNEL_NAMESPACE.to_owned(),
+            namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
@@ -73,19 +73,19 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
         let reply = match message.payload {
             CastMessagePayload::String(ref payload) => try!(
                 serde_json::from_str::<serde_json::Value>(payload)),
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_owned())),
+            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 
         let message_type = reply.as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
-            .to_owned();
+            .to_string();
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_CONNECT => ConnectionResponse::Connect,
             MESSAGE_TYPE_CLOSE => ConnectionResponse::Close,
-            _ => ConnectionResponse::NotImplemented(message_type.to_owned(), reply),
+            _ => ConnectionResponse::NotImplemented(message_type.to_string(), reply),
         };
 
         Ok(response)
