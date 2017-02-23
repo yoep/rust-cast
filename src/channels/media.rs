@@ -299,26 +299,26 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<Status, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::GetStatusRequest {
                 typ: MESSAGE_TYPE_GET_STATUS.to_string(),
                 request_id: request_id,
                 media_session_id: media_session_id,
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         self.message_manager.receive_find_map(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
 
-            match try!(self.parse(message)) {
+            match self.parse(message)? {
                 MediaResponse::Status(status) => {
                     if status.request_id == request_id {
                         return Ok(Some(status));
@@ -353,7 +353,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<Status, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::MediaRequest {
                 request_id: request_id,
                 session_id: session_id.into().to_string(),
@@ -369,14 +369,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 current_time: 0_f64,
                 autoplay: true,
                 custom_data: proxies::media::CustomData::new(),
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         // Once media is loaded cast receiver device should emit status update event, or load failed
         // event if something went wrong.
@@ -385,7 +385,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 return Ok(None);
             }
 
-            match try!(self.parse(message)) {
+            match self.parse(message)? {
                 MediaResponse::Status(status) => {
                     if status.request_id == request_id {
                         return Ok(Some(status));
@@ -447,20 +447,20 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_PAUSE.to_string(),
                 custom_data: proxies::media::CustomData::new(),
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         self.receive_status_entry(request_id, media_session_id)
     }
@@ -480,20 +480,20 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_PLAY.to_string(),
                 custom_data: proxies::media::CustomData::new(),
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         self.receive_status_entry(request_id, media_session_id)
     }
@@ -514,20 +514,20 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::PlaybackGenericRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
                 typ: MESSAGE_TYPE_STOP.to_string(),
                 custom_data: proxies::media::CustomData::new(),
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         self.receive_status_entry(request_id, media_session_id)
     }
@@ -551,7 +551,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
         -> Result<StatusEntry, Error> where S: Into<Cow<'a, str>> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::media::PlaybackSeekRequest {
                 request_id: request_id,
                 media_session_id: media_session_id,
@@ -559,14 +559,14 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 current_time: current_time,
                 resume_state: resume_state.map(|s| s.to_string()),
                 custom_data: proxies::media::CustomData::new(),
-            }));
+            })?;
 
-        try!(self.message_manager.send(CastMessage {
+        self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: self.sender.to_string(),
             destination: destination.into().to_string(),
             payload: CastMessagePayload::String(payload),
-        }));
+        })?;
 
         self.receive_status_entry(request_id, media_session_id)
     }
@@ -577,8 +577,8 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
 
     pub fn parse(&self, message: &CastMessage) -> Result<MediaResponse, Error> {
         let reply = match message.payload {
-            CastMessagePayload::String(ref payload) => try!(
-                serde_json::from_str::<serde_json::Value>(payload)),
+            CastMessagePayload::String(ref payload) => serde_json::from_str::<serde_json::Value>(
+                payload)?,
             _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 
@@ -590,8 +590,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_MEDIA_STATUS => {
-                let reply: proxies::media::StatusReply = try!(
-                    serde_json::value::from_value(reply));
+                let reply: proxies::media::StatusReply = serde_json::value::from_value(reply)?;
 
                 let statuses_entries = reply.status.iter().map(|ref x| {
                     StatusEntry {
@@ -617,32 +616,31 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 })
             },
             MESSAGE_TYPE_LOAD_CANCELLED => {
-                let reply: proxies::media::LoadCancelledReply = try!(
-                    serde_json::value::from_value(reply));
+                let reply: proxies::media::LoadCancelledReply = serde_json::value::from_value(
+                    reply)?;
 
                 MediaResponse::LoadCancelled(LoadCancelled {
                     request_id: reply.request_id,
                 })
             },
             MESSAGE_TYPE_LOAD_FAILED => {
-                let reply: proxies::media::LoadFailedReply = try!(
-                    serde_json::value::from_value(reply));
+                let reply: proxies::media::LoadFailedReply = serde_json::value::from_value(reply)?;
 
                 MediaResponse::LoadFailed(LoadFailed {
                     request_id: reply.request_id,
                 })
             },
             MESSAGE_TYPE_INVALID_PLAYER_STATE => {
-                let reply: proxies::media::InvalidPlayerStateReply = try!(
-                    serde_json::value::from_value(reply));
+                let reply: proxies::media::InvalidPlayerStateReply = serde_json::value::from_value(
+                    reply)?;
 
                 MediaResponse::InvalidPlayerState(InvalidPlayerState {
                     request_id: reply.request_id,
                 })
             },
             MESSAGE_TYPE_INVALID_REQUEST => {
-                let reply: proxies::media::InvalidRequestReply = try!(
-                    serde_json::value::from_value(reply));
+                let reply: proxies::media::InvalidRequestReply = serde_json::value::from_value(
+                    reply)?;
 
                 MediaResponse::InvalidRequest(InvalidRequest {
                     request_id: reply.request_id,
@@ -673,7 +671,7 @@ impl<'a, W> MediaChannel<'a, W> where W: Read + Write {
                 return Ok(None);
             }
 
-            match try!(self.parse(message)) {
+            match self.parse(message)? {
                 MediaResponse::Status(mut status) => {
                     if status.request_id == request_id {
                         let position = status.entries.iter().position(|e| {

@@ -36,11 +36,11 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
     }
 
     pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::connection::ConnectionRequest {
                 typ: MESSAGE_TYPE_CONNECT.to_string(),
                 user_agent: CHANNEL_USER_AGENT.to_string(),
-            }));
+            })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -51,11 +51,11 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
     }
 
     pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = try!(serde_json::to_string(
+        let payload = serde_json::to_string(
             &proxies::connection::ConnectionRequest {
                 typ: MESSAGE_TYPE_CLOSE.to_string(),
                 user_agent: CHANNEL_USER_AGENT.to_string(),
-            }));
+            })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -71,8 +71,8 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
 
     pub fn parse(&self, message: &CastMessage) -> Result<ConnectionResponse, Error> {
         let reply = match message.payload {
-            CastMessagePayload::String(ref payload) => try!(
-                serde_json::from_str::<serde_json::Value>(payload)),
+            CastMessagePayload::String(ref payload) => serde_json::from_str::<serde_json::Value>(
+                payload)?,
             _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
         };
 

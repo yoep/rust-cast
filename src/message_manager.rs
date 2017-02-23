@@ -71,14 +71,14 @@ impl<S> MessageManager<S> where S: Write + Read {
             },
         };
 
-        let message_content_buffer = try!(utils::to_vec(&raw_message));
-        let message_length_buffer = try!(
-            utils::write_u32_to_buffer(message_content_buffer.len() as u32));
+        let message_content_buffer = utils::to_vec(&raw_message)?;
+        let message_length_buffer = utils::write_u32_to_buffer(
+            message_content_buffer.len() as u32)?;
 
         let mut writer = &mut *self.stream.borrow_mut();
 
-        try!(writer.write(&message_length_buffer));
-        try!(writer.write(&message_content_buffer));
+        writer.write(&message_length_buffer)?;
+        writer.write(&message_content_buffer)?;
 
         debug!("Message sent: {:?}", raw_message);
 
@@ -130,11 +130,11 @@ impl<S> MessageManager<S> where S: Write + Read {
     pub fn receive_find_map<F, B>(&self, f: F)
         -> Result<B, Error> where F: Fn(&CastMessage) -> Result<Option<B>, Error> {
         loop {
-            let message = try!(self.read());
+            let message = self.read()?;
 
             // If message is found, just return mapped result, otherwise keep unprocessed message
             // in the buffer, it can be later retrieved with `receive`.
-            match try!(f(&message)) {
+            match f(&message)? {
                 Some(r) => return Ok(r),
                 None => self.message_buffer.borrow_mut().push(message)
             }
@@ -164,17 +164,17 @@ impl<S> MessageManager<S> where S: Write + Read {
 
         let mut reader = &mut *self.stream.borrow_mut();
 
-        try!(reader.read_exact(&mut buffer));
+        reader.read_exact(&mut buffer)?;
 
-        let length = try!(utils::read_u32_from_buffer(&buffer));
+        let length = utils::read_u32_from_buffer(&buffer)?;
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
         let mut limited_reader = reader.take(length as u64);
 
-        try!(limited_reader.read_to_end(&mut buffer));
+        limited_reader.read_to_end(&mut buffer)?;
 
-        let raw_message = try!(
-            utils::from_vec::<cast_channel::CastMessage>(buffer.iter().cloned().collect()));
+        let raw_message = utils::from_vec::<cast_channel::CastMessage>(
+            buffer.iter().cloned().collect())?;
 
         debug!("Message received: {:?}", raw_message);
 

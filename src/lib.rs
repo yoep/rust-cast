@@ -70,7 +70,7 @@ impl<'a> CastDevice<'a> {
     /// # Examples
     ///
     /// ```
-    /// let device = try!(CastDevice::connect(args.flag_address.unwrap(), args.flag_port));
+    /// let device = CastDevice::connect(args.flag_address.unwrap(), args.flag_port)?;
     /// ```
     ///
     /// # Arguments
@@ -92,10 +92,10 @@ impl<'a> CastDevice<'a> {
 
         debug!("Establishing connection with cast device at {}:{}...", host, port);
 
-        let connector = try!(SslConnectorBuilder::new(SslMethod::tls())).build();
-        let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
+        let connector = SslConnectorBuilder::new(SslMethod::tls())?.build();
+        let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
 
-        CastDevice::connect_to_device(try!(connector.connect(host.as_ref(), tcp_stream)))
+        CastDevice::connect_to_device(connector.connect(host.as_ref(), tcp_stream)?)
     }
 
     /// Connects to the cast device using host name and port _without_ host verification. Use on
@@ -104,8 +104,8 @@ impl<'a> CastDevice<'a> {
     /// # Examples
     ///
     /// ```
-    /// let device = try!(CastDevice::connect_without_host_verification(
-    ///     args.flag_address.unwrap(), args.flag_port));
+    /// let device = CastDevice::connect_without_host_verification(
+    ///     args.flag_address.unwrap(), args.flag_port)?;
     /// ```
     ///
     /// # Arguments
@@ -127,7 +127,7 @@ impl<'a> CastDevice<'a> {
 
         debug!("Establishing non-verified connection with cast device at {}:{}...", host, port);
 
-        let mut builder = try!(SslConnectorBuilder::new(SslMethod::tls()));
+        let mut builder = SslConnectorBuilder::new(SslMethod::tls())?;
 
         {
             let mut ctx_builder = builder.builder_mut();
@@ -135,12 +135,12 @@ impl<'a> CastDevice<'a> {
         }
 
         let connector = builder.build();
-        let tcp_stream = try!(TcpStream::connect((host.as_ref(), port)));
+        let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
 
         debug!("Connection with {}:{} successfully established.", host, port);
 
         CastDevice::connect_to_device(
-            try!(connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(tcp_stream)))
+            connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(tcp_stream)?)
     }
 
 
@@ -166,22 +166,22 @@ impl<'a> CastDevice<'a> {
     ///
     /// Parsed channel message.
     pub fn receive(&self) -> Result<ChannelMessage, Error> {
-        let cast_message = try!(self.message_manager.receive());
+        let cast_message = self.message_manager.receive()?;
 
         if self.connection.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Connection(try!(self.connection.parse(&cast_message))));
+            return Ok(ChannelMessage::Connection(self.connection.parse(&cast_message)?));
         }
 
         if self.heartbeat.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Heartbeat(try!(self.heartbeat.parse(&cast_message))));
+            return Ok(ChannelMessage::Heartbeat(self.heartbeat.parse(&cast_message)?));
         }
 
         if self.media.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Media(try!(self.media.parse(&cast_message))));
+            return Ok(ChannelMessage::Media(self.media.parse(&cast_message)?));
         }
 
         if self.receiver.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Receiver(try!(self.receiver.parse(&cast_message))));
+            return Ok(ChannelMessage::Receiver(self.receiver.parse(&cast_message)?));
         }
 
         Ok(ChannelMessage::Raw(cast_message))
