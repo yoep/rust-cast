@@ -1,22 +1,33 @@
 // This file is generated. Do not edit
 // @generated
 
+// https://github.com/Manishearth/rust-clippy/issues/702
+#![allow(unknown_lints)]
+#![allow(clippy)]
+
+#![cfg_attr(rustfmt, rustfmt_skip)]
+
+#![allow(box_pointers)]
 #![allow(dead_code)]
+#![allow(missing_docs)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![allow(trivial_casts)]
+#![allow(unsafe_code)]
 #![allow(unused_imports)]
+#![allow(unused_results)]
 
 use protobuf::Message as Message_imported_for_functions;
 use protobuf::ProtobufEnum as ProtobufEnum_imported_for_functions;
 
-#[derive(Clone,Default,Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 pub struct AuthorityKeys {
     // message fields
     keys: ::protobuf::RepeatedField<AuthorityKeys_Key>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::std::cell::Cell<u32>,
+    cached_size: ::protobuf::CachedSize,
 }
 
 // see codegen.rs for the explanation why impl Sync explicitly
@@ -33,13 +44,7 @@ impl AuthorityKeys {
             ptr: 0 as *const AuthorityKeys,
         };
         unsafe {
-            instance.get(|| {
-                AuthorityKeys {
-                    keys: ::protobuf::RepeatedField::new(),
-                    unknown_fields: ::protobuf::UnknownFields::new(),
-                    cached_size: ::std::cell::Cell::new(0),
-                }
-            })
+            instance.get(AuthorityKeys::new)
         }
     }
 
@@ -55,7 +60,7 @@ impl AuthorityKeys {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_keys<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<AuthorityKeys_Key> {
+    pub fn mut_keys(&mut self) -> &mut ::protobuf::RepeatedField<AuthorityKeys_Key> {
         &mut self.keys
     }
 
@@ -64,8 +69,16 @@ impl AuthorityKeys {
         ::std::mem::replace(&mut self.keys, ::protobuf::RepeatedField::new())
     }
 
-    pub fn get_keys<'a>(&'a self) -> &'a [AuthorityKeys_Key] {
+    pub fn get_keys(&self) -> &[AuthorityKeys_Key] {
         &self.keys
+    }
+
+    fn get_keys_for_reflect(&self) -> &::protobuf::RepeatedField<AuthorityKeys_Key> {
+        &self.keys
+    }
+
+    fn mut_keys_for_reflect(&mut self) -> &mut ::protobuf::RepeatedField<AuthorityKeys_Key> {
+        &mut self.keys
     }
 }
 
@@ -74,21 +87,16 @@ impl ::protobuf::Message for AuthorityKeys {
         true
     }
 
-    fn merge_from(&mut self,
-                  is: &mut ::protobuf::CodedInputStream)
-                  -> ::protobuf::ProtobufResult<()> {
-        while !try!(is.eof()) {
-            let (field_number, wire_type) = try!(is.read_tag_unpack());
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    try!(::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.keys));
-                }
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.keys)?;
+                },
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number,
-                                                                    wire_type,
-                                                                    is,
-                                                                    self.mut_unknown_fields()));
-                }
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
             };
         }
         ::std::result::Result::Ok(())
@@ -98,24 +106,22 @@ impl ::protobuf::Message for AuthorityKeys {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        for value in self.keys.iter() {
+        for value in &self.keys {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-        }
+        };
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
     }
 
-    fn write_to_with_cached_sizes(&self,
-                                  os: &mut ::protobuf::CodedOutputStream)
-                                  -> ::protobuf::ProtobufResult<()> {
-        for v in self.keys.iter() {
-            try!(os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited));
-            try!(os.write_raw_varint32(v.get_cached_size()));
-            try!(v.write_to_with_cached_sizes(os));
-        }
-        try!(os.write_unknown_fields(self.get_unknown_fields()));
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+        for v in &self.keys {
+            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        };
+        os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
 
@@ -123,20 +129,22 @@ impl ::protobuf::Message for AuthorityKeys {
         self.cached_size.get()
     }
 
-    fn get_unknown_fields<'s>(&'s self) -> &'s ::protobuf::UnknownFields {
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
         &self.unknown_fields
     }
 
-    fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
-    }
-
-    fn type_id(&self) -> ::std::any::TypeId {
-        ::std::any::TypeId::of::<AuthorityKeys>()
     }
 
     fn as_any(&self) -> &::std::any::Any {
         self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -157,20 +165,14 @@ impl ::protobuf::Clear for AuthorityKeys {
     }
 }
 
-impl ::std::cmp::PartialEq for AuthorityKeys {
-    fn eq(&self, other: &AuthorityKeys) -> bool {
-        self.keys == other.keys && self.unknown_fields == other.unknown_fields
-    }
-}
-
-#[derive(Clone,Default,Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 pub struct AuthorityKeys_Key {
     // message fields
     fingerprint: ::protobuf::SingularField<::std::vec::Vec<u8>>,
     public_key: ::protobuf::SingularField<::std::vec::Vec<u8>>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::std::cell::Cell<u32>,
+    cached_size: ::protobuf::CachedSize,
 }
 
 // see codegen.rs for the explanation why impl Sync explicitly
@@ -187,14 +189,7 @@ impl AuthorityKeys_Key {
             ptr: 0 as *const AuthorityKeys_Key,
         };
         unsafe {
-            instance.get(|| {
-                AuthorityKeys_Key {
-                    fingerprint: ::protobuf::SingularField::none(),
-                    public_key: ::protobuf::SingularField::none(),
-                    unknown_fields: ::protobuf::UnknownFields::new(),
-                    cached_size: ::std::cell::Cell::new(0),
-                }
-            })
+            instance.get(AuthorityKeys_Key::new)
         }
     }
 
@@ -215,7 +210,7 @@ impl AuthorityKeys_Key {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_fingerprint<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
+    pub fn mut_fingerprint(&mut self) -> &mut ::std::vec::Vec<u8> {
         if self.fingerprint.is_none() {
             self.fingerprint.set_default();
         };
@@ -227,11 +222,19 @@ impl AuthorityKeys_Key {
         self.fingerprint.take().unwrap_or_else(|| ::std::vec::Vec::new())
     }
 
-    pub fn get_fingerprint<'a>(&'a self) -> &'a [u8] {
+    pub fn get_fingerprint(&self) -> &[u8] {
         match self.fingerprint.as_ref() {
             Some(v) => &v,
             None => &[],
         }
+    }
+
+    fn get_fingerprint_for_reflect(&self) -> &::protobuf::SingularField<::std::vec::Vec<u8>> {
+        &self.fingerprint
+    }
+
+    fn mut_fingerprint_for_reflect(&mut self) -> &mut ::protobuf::SingularField<::std::vec::Vec<u8>> {
+        &mut self.fingerprint
     }
 
     // required bytes public_key = 2;
@@ -251,7 +254,7 @@ impl AuthorityKeys_Key {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_public_key<'a>(&'a mut self) -> &'a mut ::std::vec::Vec<u8> {
+    pub fn mut_public_key(&mut self) -> &mut ::std::vec::Vec<u8> {
         if self.public_key.is_none() {
             self.public_key.set_default();
         };
@@ -263,11 +266,19 @@ impl AuthorityKeys_Key {
         self.public_key.take().unwrap_or_else(|| ::std::vec::Vec::new())
     }
 
-    pub fn get_public_key<'a>(&'a self) -> &'a [u8] {
+    pub fn get_public_key(&self) -> &[u8] {
         match self.public_key.as_ref() {
             Some(v) => &v,
             None => &[],
         }
+    }
+
+    fn get_public_key_for_reflect(&self) -> &::protobuf::SingularField<::std::vec::Vec<u8>> {
+        &self.public_key
+    }
+
+    fn mut_public_key_for_reflect(&mut self) -> &mut ::protobuf::SingularField<::std::vec::Vec<u8>> {
+        &mut self.public_key
     }
 }
 
@@ -282,28 +293,19 @@ impl ::protobuf::Message for AuthorityKeys_Key {
         true
     }
 
-    fn merge_from(&mut self,
-                  is: &mut ::protobuf::CodedInputStream)
-                  -> ::protobuf::ProtobufResult<()> {
-        while !try!(is.eof()) {
-            let (field_number, wire_type) = try!(is.read_tag_unpack());
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    try!(::protobuf::rt::read_singular_bytes_into(wire_type,
-                                                                  is,
-                                                                  &mut self.fingerprint));
-                }
+                    ::protobuf::rt::read_singular_bytes_into(wire_type, is, &mut self.fingerprint)?;
+                },
                 2 => {
-                    try!(::protobuf::rt::read_singular_bytes_into(wire_type,
-                                                                  is,
-                                                                  &mut self.public_key));
-                }
+                    ::protobuf::rt::read_singular_bytes_into(wire_type, is, &mut self.public_key)?;
+                },
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number,
-                                                                    wire_type,
-                                                                    is,
-                                                                    self.mut_unknown_fields()));
-                }
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
             };
         }
         ::std::result::Result::Ok(())
@@ -313,27 +315,25 @@ impl ::protobuf::Message for AuthorityKeys_Key {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        for value in self.fingerprint.iter() {
-            my_size += ::protobuf::rt::bytes_size(1, &value);
-        }
-        for value in self.public_key.iter() {
-            my_size += ::protobuf::rt::bytes_size(2, &value);
-        }
+        if let Some(v) = self.fingerprint.as_ref() {
+            my_size += ::protobuf::rt::bytes_size(1, &v);
+        };
+        if let Some(v) = self.public_key.as_ref() {
+            my_size += ::protobuf::rt::bytes_size(2, &v);
+        };
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
     }
 
-    fn write_to_with_cached_sizes(&self,
-                                  os: &mut ::protobuf::CodedOutputStream)
-                                  -> ::protobuf::ProtobufResult<()> {
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
         if let Some(v) = self.fingerprint.as_ref() {
-            try!(os.write_bytes(1, &v));
+            os.write_bytes(1, &v)?;
         };
         if let Some(v) = self.public_key.as_ref() {
-            try!(os.write_bytes(2, &v));
+            os.write_bytes(2, &v)?;
         };
-        try!(os.write_unknown_fields(self.get_unknown_fields()));
+        os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
 
@@ -341,20 +341,22 @@ impl ::protobuf::Message for AuthorityKeys_Key {
         self.cached_size.get()
     }
 
-    fn get_unknown_fields<'s>(&'s self) -> &'s ::protobuf::UnknownFields {
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
         &self.unknown_fields
     }
 
-    fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
-    }
-
-    fn type_id(&self) -> ::std::any::TypeId {
-        ::std::any::TypeId::of::<AuthorityKeys_Key>()
     }
 
     fn as_any(&self) -> &::std::any::Any {
         self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -373,12 +375,5 @@ impl ::protobuf::Clear for AuthorityKeys_Key {
         self.clear_fingerprint();
         self.clear_public_key();
         self.unknown_fields.clear();
-    }
-}
-
-impl ::std::cmp::PartialEq for AuthorityKeys_Key {
-    fn eq(&self, other: &AuthorityKeys_Key) -> bool {
-        self.fingerprint == other.fingerprint && self.public_key == other.public_key &&
-        self.unknown_fields == other.unknown_fields
     }
 }

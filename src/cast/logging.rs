@@ -1,16 +1,27 @@
 // This file is generated. Do not edit
 // @generated
 
+// https://github.com/Manishearth/rust-clippy/issues/702
+#![allow(unknown_lints)]
+#![allow(clippy)]
+
+#![cfg_attr(rustfmt, rustfmt_skip)]
+
+#![allow(box_pointers)]
 #![allow(dead_code)]
+#![allow(missing_docs)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![allow(trivial_casts)]
+#![allow(unsafe_code)]
 #![allow(unused_imports)]
+#![allow(unused_results)]
 
 use protobuf::Message as Message_imported_for_functions;
 use protobuf::ProtobufEnum as ProtobufEnum_imported_for_functions;
 
-#[derive(Clone,Default,Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 pub struct SocketEvent {
     // message fields
     field_type: ::std::option::Option<EventType>,
@@ -27,7 +38,7 @@ pub struct SocketEvent {
     nss_error_code: ::std::option::Option<i32>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::std::cell::Cell<u32>,
+    cached_size: ::protobuf::CachedSize,
 }
 
 // see codegen.rs for the explanation why impl Sync explicitly
@@ -44,24 +55,7 @@ impl SocketEvent {
             ptr: 0 as *const SocketEvent,
         };
         unsafe {
-            instance.get(|| {
-                SocketEvent {
-                    field_type: ::std::option::Option::None,
-                    timestamp_micros: ::std::option::Option::None,
-                    details: ::protobuf::SingularField::none(),
-                    net_return_value: ::std::option::Option::None,
-                    message_namespace: ::protobuf::SingularField::none(),
-                    ready_state: ::std::option::Option::None,
-                    connection_state: ::std::option::Option::None,
-                    read_state: ::std::option::Option::None,
-                    write_state: ::std::option::Option::None,
-                    error_state: ::std::option::Option::None,
-                    challenge_reply_error_type: ::std::option::Option::None,
-                    nss_error_code: ::std::option::Option::None,
-                    unknown_fields: ::protobuf::UnknownFields::new(),
-                    cached_size: ::std::cell::Cell::new(0),
-                }
-            })
+            instance.get(SocketEvent::new)
         }
     }
 
@@ -80,8 +74,16 @@ impl SocketEvent {
         self.field_type = ::std::option::Option::Some(v);
     }
 
-    pub fn get_field_type<'a>(&self) -> EventType {
+    pub fn get_field_type(&self) -> EventType {
         self.field_type.unwrap_or(EventType::EVENT_TYPE_UNKNOWN)
+    }
+
+    fn get_field_type_for_reflect(&self) -> &::std::option::Option<EventType> {
+        &self.field_type
+    }
+
+    fn mut_field_type_for_reflect(&mut self) -> &mut ::std::option::Option<EventType> {
+        &mut self.field_type
     }
 
     // optional int64 timestamp_micros = 2;
@@ -99,8 +101,16 @@ impl SocketEvent {
         self.timestamp_micros = ::std::option::Option::Some(v);
     }
 
-    pub fn get_timestamp_micros<'a>(&self) -> i64 {
+    pub fn get_timestamp_micros(&self) -> i64 {
         self.timestamp_micros.unwrap_or(0)
+    }
+
+    fn get_timestamp_micros_for_reflect(&self) -> &::std::option::Option<i64> {
+        &self.timestamp_micros
+    }
+
+    fn mut_timestamp_micros_for_reflect(&mut self) -> &mut ::std::option::Option<i64> {
+        &mut self.timestamp_micros
     }
 
     // optional string details = 3;
@@ -120,7 +130,7 @@ impl SocketEvent {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_details<'a>(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_details(&mut self) -> &mut ::std::string::String {
         if self.details.is_none() {
             self.details.set_default();
         };
@@ -132,11 +142,19 @@ impl SocketEvent {
         self.details.take().unwrap_or_else(|| ::std::string::String::new())
     }
 
-    pub fn get_details<'a>(&'a self) -> &'a str {
+    pub fn get_details(&self) -> &str {
         match self.details.as_ref() {
             Some(v) => &v,
             None => "",
         }
+    }
+
+    fn get_details_for_reflect(&self) -> &::protobuf::SingularField<::std::string::String> {
+        &self.details
+    }
+
+    fn mut_details_for_reflect(&mut self) -> &mut ::protobuf::SingularField<::std::string::String> {
+        &mut self.details
     }
 
     // optional int32 net_return_value = 4;
@@ -154,8 +172,16 @@ impl SocketEvent {
         self.net_return_value = ::std::option::Option::Some(v);
     }
 
-    pub fn get_net_return_value<'a>(&self) -> i32 {
+    pub fn get_net_return_value(&self) -> i32 {
         self.net_return_value.unwrap_or(0)
+    }
+
+    fn get_net_return_value_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.net_return_value
+    }
+
+    fn mut_net_return_value_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.net_return_value
     }
 
     // optional string message_namespace = 5;
@@ -175,7 +201,7 @@ impl SocketEvent {
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_message_namespace<'a>(&'a mut self) -> &'a mut ::std::string::String {
+    pub fn mut_message_namespace(&mut self) -> &mut ::std::string::String {
         if self.message_namespace.is_none() {
             self.message_namespace.set_default();
         };
@@ -187,11 +213,19 @@ impl SocketEvent {
         self.message_namespace.take().unwrap_or_else(|| ::std::string::String::new())
     }
 
-    pub fn get_message_namespace<'a>(&'a self) -> &'a str {
+    pub fn get_message_namespace(&self) -> &str {
         match self.message_namespace.as_ref() {
             Some(v) => &v,
             None => "",
         }
+    }
+
+    fn get_message_namespace_for_reflect(&self) -> &::protobuf::SingularField<::std::string::String> {
+        &self.message_namespace
+    }
+
+    fn mut_message_namespace_for_reflect(&mut self) -> &mut ::protobuf::SingularField<::std::string::String> {
+        &mut self.message_namespace
     }
 
     // optional .extensions.api.cast_channel.proto.ReadyState ready_state = 6;
@@ -209,8 +243,16 @@ impl SocketEvent {
         self.ready_state = ::std::option::Option::Some(v);
     }
 
-    pub fn get_ready_state<'a>(&self) -> ReadyState {
+    pub fn get_ready_state(&self) -> ReadyState {
         self.ready_state.unwrap_or(ReadyState::READY_STATE_NONE)
+    }
+
+    fn get_ready_state_for_reflect(&self) -> &::std::option::Option<ReadyState> {
+        &self.ready_state
+    }
+
+    fn mut_ready_state_for_reflect(&mut self) -> &mut ::std::option::Option<ReadyState> {
+        &mut self.ready_state
     }
 
     // optional .extensions.api.cast_channel.proto.ConnectionState connection_state = 7;
@@ -228,8 +270,16 @@ impl SocketEvent {
         self.connection_state = ::std::option::Option::Some(v);
     }
 
-    pub fn get_connection_state<'a>(&self) -> ConnectionState {
+    pub fn get_connection_state(&self) -> ConnectionState {
         self.connection_state.unwrap_or(ConnectionState::CONN_STATE_UNKNOWN)
+    }
+
+    fn get_connection_state_for_reflect(&self) -> &::std::option::Option<ConnectionState> {
+        &self.connection_state
+    }
+
+    fn mut_connection_state_for_reflect(&mut self) -> &mut ::std::option::Option<ConnectionState> {
+        &mut self.connection_state
     }
 
     // optional .extensions.api.cast_channel.proto.ReadState read_state = 8;
@@ -247,8 +297,16 @@ impl SocketEvent {
         self.read_state = ::std::option::Option::Some(v);
     }
 
-    pub fn get_read_state<'a>(&self) -> ReadState {
+    pub fn get_read_state(&self) -> ReadState {
         self.read_state.unwrap_or(ReadState::READ_STATE_UNKNOWN)
+    }
+
+    fn get_read_state_for_reflect(&self) -> &::std::option::Option<ReadState> {
+        &self.read_state
+    }
+
+    fn mut_read_state_for_reflect(&mut self) -> &mut ::std::option::Option<ReadState> {
+        &mut self.read_state
     }
 
     // optional .extensions.api.cast_channel.proto.WriteState write_state = 9;
@@ -266,8 +324,16 @@ impl SocketEvent {
         self.write_state = ::std::option::Option::Some(v);
     }
 
-    pub fn get_write_state<'a>(&self) -> WriteState {
+    pub fn get_write_state(&self) -> WriteState {
         self.write_state.unwrap_or(WriteState::WRITE_STATE_UNKNOWN)
+    }
+
+    fn get_write_state_for_reflect(&self) -> &::std::option::Option<WriteState> {
+        &self.write_state
+    }
+
+    fn mut_write_state_for_reflect(&mut self) -> &mut ::std::option::Option<WriteState> {
+        &mut self.write_state
     }
 
     // optional .extensions.api.cast_channel.proto.ErrorState error_state = 10;
@@ -285,8 +351,16 @@ impl SocketEvent {
         self.error_state = ::std::option::Option::Some(v);
     }
 
-    pub fn get_error_state<'a>(&self) -> ErrorState {
+    pub fn get_error_state(&self) -> ErrorState {
         self.error_state.unwrap_or(ErrorState::CHANNEL_ERROR_NONE)
+    }
+
+    fn get_error_state_for_reflect(&self) -> &::std::option::Option<ErrorState> {
+        &self.error_state
+    }
+
+    fn mut_error_state_for_reflect(&mut self) -> &mut ::std::option::Option<ErrorState> {
+        &mut self.error_state
     }
 
     // optional .extensions.api.cast_channel.proto.ChallengeReplyErrorType challenge_reply_error_type = 11;
@@ -304,8 +378,16 @@ impl SocketEvent {
         self.challenge_reply_error_type = ::std::option::Option::Some(v);
     }
 
-    pub fn get_challenge_reply_error_type<'a>(&self) -> ChallengeReplyErrorType {
+    pub fn get_challenge_reply_error_type(&self) -> ChallengeReplyErrorType {
         self.challenge_reply_error_type.unwrap_or(ChallengeReplyErrorType::CHALLENGE_REPLY_ERROR_NONE)
+    }
+
+    fn get_challenge_reply_error_type_for_reflect(&self) -> &::std::option::Option<ChallengeReplyErrorType> {
+        &self.challenge_reply_error_type
+    }
+
+    fn mut_challenge_reply_error_type_for_reflect(&mut self) -> &mut ::std::option::Option<ChallengeReplyErrorType> {
+        &mut self.challenge_reply_error_type
     }
 
     // optional int32 nss_error_code = 12;
@@ -323,8 +405,16 @@ impl SocketEvent {
         self.nss_error_code = ::std::option::Option::Some(v);
     }
 
-    pub fn get_nss_error_code<'a>(&self) -> i32 {
+    pub fn get_nss_error_code(&self) -> i32 {
         self.nss_error_code.unwrap_or(0)
+    }
+
+    fn get_nss_error_code_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.nss_error_code
+    }
+
+    fn mut_nss_error_code_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.nss_error_code
     }
 }
 
@@ -334,87 +424,87 @@ impl ::protobuf::Message for SocketEvent {
     }
 
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
-        while !try!(is.eof()) {
-            let (field_number, wire_type) = try!(is.read_tag_unpack());
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.field_type = ::std::option::Option::Some(tmp);
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int64());
+                    let tmp = is.read_int64()?;
                     self.timestamp_micros = ::std::option::Option::Some(tmp);
                 },
                 3 => {
-                    try!(::protobuf::rt::read_singular_string_into(wire_type, is, &mut self.details));
+                    ::protobuf::rt::read_singular_string_into(wire_type, is, &mut self.details)?;
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.net_return_value = ::std::option::Option::Some(tmp);
                 },
                 5 => {
-                    try!(::protobuf::rt::read_singular_string_into(wire_type, is, &mut self.message_namespace));
+                    ::protobuf::rt::read_singular_string_into(wire_type, is, &mut self.message_namespace)?;
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.ready_state = ::std::option::Option::Some(tmp);
                 },
                 7 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.connection_state = ::std::option::Option::Some(tmp);
                 },
                 8 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.read_state = ::std::option::Option::Some(tmp);
                 },
                 9 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.write_state = ::std::option::Option::Some(tmp);
                 },
                 10 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.error_state = ::std::option::Option::Some(tmp);
                 },
                 11 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.challenge_reply_error_type = ::std::option::Option::Some(tmp);
                 },
                 12 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.nss_error_code = ::std::option::Option::Some(tmp);
                 },
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields()));
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
                 },
             };
         }
@@ -425,41 +515,41 @@ impl ::protobuf::Message for SocketEvent {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        for value in self.field_type.iter() {
-            my_size += ::protobuf::rt::enum_size(1, *value);
+        if let Some(v) = self.field_type {
+            my_size += ::protobuf::rt::enum_size(1, v);
         };
-        for value in self.timestamp_micros.iter() {
-            my_size += ::protobuf::rt::value_size(2, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.timestamp_micros {
+            my_size += ::protobuf::rt::value_size(2, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.details.iter() {
-            my_size += ::protobuf::rt::string_size(3, &value);
+        if let Some(v) = self.details.as_ref() {
+            my_size += ::protobuf::rt::string_size(3, &v);
         };
-        for value in self.net_return_value.iter() {
-            my_size += ::protobuf::rt::value_size(4, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.net_return_value {
+            my_size += ::protobuf::rt::value_size(4, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.message_namespace.iter() {
-            my_size += ::protobuf::rt::string_size(5, &value);
+        if let Some(v) = self.message_namespace.as_ref() {
+            my_size += ::protobuf::rt::string_size(5, &v);
         };
-        for value in self.ready_state.iter() {
-            my_size += ::protobuf::rt::enum_size(6, *value);
+        if let Some(v) = self.ready_state {
+            my_size += ::protobuf::rt::enum_size(6, v);
         };
-        for value in self.connection_state.iter() {
-            my_size += ::protobuf::rt::enum_size(7, *value);
+        if let Some(v) = self.connection_state {
+            my_size += ::protobuf::rt::enum_size(7, v);
         };
-        for value in self.read_state.iter() {
-            my_size += ::protobuf::rt::enum_size(8, *value);
+        if let Some(v) = self.read_state {
+            my_size += ::protobuf::rt::enum_size(8, v);
         };
-        for value in self.write_state.iter() {
-            my_size += ::protobuf::rt::enum_size(9, *value);
+        if let Some(v) = self.write_state {
+            my_size += ::protobuf::rt::enum_size(9, v);
         };
-        for value in self.error_state.iter() {
-            my_size += ::protobuf::rt::enum_size(10, *value);
+        if let Some(v) = self.error_state {
+            my_size += ::protobuf::rt::enum_size(10, v);
         };
-        for value in self.challenge_reply_error_type.iter() {
-            my_size += ::protobuf::rt::enum_size(11, *value);
+        if let Some(v) = self.challenge_reply_error_type {
+            my_size += ::protobuf::rt::enum_size(11, v);
         };
-        for value in self.nss_error_code.iter() {
-            my_size += ::protobuf::rt::value_size(12, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.nss_error_code {
+            my_size += ::protobuf::rt::value_size(12, v, ::protobuf::wire_format::WireTypeVarint);
         };
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -468,42 +558,42 @@ impl ::protobuf::Message for SocketEvent {
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
         if let Some(v) = self.field_type {
-            try!(os.write_enum(1, v.value()));
+            os.write_enum(1, v.value())?;
         };
         if let Some(v) = self.timestamp_micros {
-            try!(os.write_int64(2, v));
+            os.write_int64(2, v)?;
         };
         if let Some(v) = self.details.as_ref() {
-            try!(os.write_string(3, &v));
+            os.write_string(3, &v)?;
         };
         if let Some(v) = self.net_return_value {
-            try!(os.write_int32(4, v));
+            os.write_int32(4, v)?;
         };
         if let Some(v) = self.message_namespace.as_ref() {
-            try!(os.write_string(5, &v));
+            os.write_string(5, &v)?;
         };
         if let Some(v) = self.ready_state {
-            try!(os.write_enum(6, v.value()));
+            os.write_enum(6, v.value())?;
         };
         if let Some(v) = self.connection_state {
-            try!(os.write_enum(7, v.value()));
+            os.write_enum(7, v.value())?;
         };
         if let Some(v) = self.read_state {
-            try!(os.write_enum(8, v.value()));
+            os.write_enum(8, v.value())?;
         };
         if let Some(v) = self.write_state {
-            try!(os.write_enum(9, v.value()));
+            os.write_enum(9, v.value())?;
         };
         if let Some(v) = self.error_state {
-            try!(os.write_enum(10, v.value()));
+            os.write_enum(10, v.value())?;
         };
         if let Some(v) = self.challenge_reply_error_type {
-            try!(os.write_enum(11, v.value()));
+            os.write_enum(11, v.value())?;
         };
         if let Some(v) = self.nss_error_code {
-            try!(os.write_int32(12, v));
+            os.write_int32(12, v)?;
         };
-        try!(os.write_unknown_fields(self.get_unknown_fields()));
+        os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
 
@@ -511,20 +601,22 @@ impl ::protobuf::Message for SocketEvent {
         self.cached_size.get()
     }
 
-    fn get_unknown_fields<'s>(&'s self) -> &'s ::protobuf::UnknownFields {
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
         &self.unknown_fields
     }
 
-    fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
-    }
-
-    fn type_id(&self) -> ::std::any::TypeId {
-        ::std::any::TypeId::of::<SocketEvent>()
     }
 
     fn as_any(&self) -> &::std::any::Any {
         self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -556,25 +648,7 @@ impl ::protobuf::Clear for SocketEvent {
     }
 }
 
-impl ::std::cmp::PartialEq for SocketEvent {
-    fn eq(&self, other: &SocketEvent) -> bool {
-        self.field_type == other.field_type &&
-        self.timestamp_micros == other.timestamp_micros &&
-        self.details == other.details &&
-        self.net_return_value == other.net_return_value &&
-        self.message_namespace == other.message_namespace &&
-        self.ready_state == other.ready_state &&
-        self.connection_state == other.connection_state &&
-        self.read_state == other.read_state &&
-        self.write_state == other.write_state &&
-        self.error_state == other.error_state &&
-        self.challenge_reply_error_type == other.challenge_reply_error_type &&
-        self.nss_error_code == other.nss_error_code &&
-        self.unknown_fields == other.unknown_fields
-    }
-}
-
-#[derive(Clone,Default,Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 pub struct AggregatedSocketEvent {
     // message fields
     id: ::std::option::Option<i32>,
@@ -585,7 +659,7 @@ pub struct AggregatedSocketEvent {
     bytes_written: ::std::option::Option<i64>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::std::cell::Cell<u32>,
+    cached_size: ::protobuf::CachedSize,
 }
 
 // see codegen.rs for the explanation why impl Sync explicitly
@@ -602,18 +676,7 @@ impl AggregatedSocketEvent {
             ptr: 0 as *const AggregatedSocketEvent,
         };
         unsafe {
-            instance.get(|| {
-                AggregatedSocketEvent {
-                    id: ::std::option::Option::None,
-                    endpoint_id: ::std::option::Option::None,
-                    channel_auth_type: ::std::option::Option::None,
-                    socket_event: ::protobuf::RepeatedField::new(),
-                    bytes_read: ::std::option::Option::None,
-                    bytes_written: ::std::option::Option::None,
-                    unknown_fields: ::protobuf::UnknownFields::new(),
-                    cached_size: ::std::cell::Cell::new(0),
-                }
-            })
+            instance.get(AggregatedSocketEvent::new)
         }
     }
 
@@ -632,8 +695,16 @@ impl AggregatedSocketEvent {
         self.id = ::std::option::Option::Some(v);
     }
 
-    pub fn get_id<'a>(&self) -> i32 {
+    pub fn get_id(&self) -> i32 {
         self.id.unwrap_or(0)
+    }
+
+    fn get_id_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.id
+    }
+
+    fn mut_id_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.id
     }
 
     // optional int32 endpoint_id = 2;
@@ -651,8 +722,16 @@ impl AggregatedSocketEvent {
         self.endpoint_id = ::std::option::Option::Some(v);
     }
 
-    pub fn get_endpoint_id<'a>(&self) -> i32 {
+    pub fn get_endpoint_id(&self) -> i32 {
         self.endpoint_id.unwrap_or(0)
+    }
+
+    fn get_endpoint_id_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.endpoint_id
+    }
+
+    fn mut_endpoint_id_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.endpoint_id
     }
 
     // optional .extensions.api.cast_channel.proto.ChannelAuth channel_auth_type = 3;
@@ -670,8 +749,16 @@ impl AggregatedSocketEvent {
         self.channel_auth_type = ::std::option::Option::Some(v);
     }
 
-    pub fn get_channel_auth_type<'a>(&self) -> ChannelAuth {
+    pub fn get_channel_auth_type(&self) -> ChannelAuth {
         self.channel_auth_type.unwrap_or(ChannelAuth::SSL)
+    }
+
+    fn get_channel_auth_type_for_reflect(&self) -> &::std::option::Option<ChannelAuth> {
+        &self.channel_auth_type
+    }
+
+    fn mut_channel_auth_type_for_reflect(&mut self) -> &mut ::std::option::Option<ChannelAuth> {
+        &mut self.channel_auth_type
     }
 
     // repeated .extensions.api.cast_channel.proto.SocketEvent socket_event = 4;
@@ -686,7 +773,7 @@ impl AggregatedSocketEvent {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_socket_event<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<SocketEvent> {
+    pub fn mut_socket_event(&mut self) -> &mut ::protobuf::RepeatedField<SocketEvent> {
         &mut self.socket_event
     }
 
@@ -695,8 +782,16 @@ impl AggregatedSocketEvent {
         ::std::mem::replace(&mut self.socket_event, ::protobuf::RepeatedField::new())
     }
 
-    pub fn get_socket_event<'a>(&'a self) -> &'a [SocketEvent] {
+    pub fn get_socket_event(&self) -> &[SocketEvent] {
         &self.socket_event
+    }
+
+    fn get_socket_event_for_reflect(&self) -> &::protobuf::RepeatedField<SocketEvent> {
+        &self.socket_event
+    }
+
+    fn mut_socket_event_for_reflect(&mut self) -> &mut ::protobuf::RepeatedField<SocketEvent> {
+        &mut self.socket_event
     }
 
     // optional int64 bytes_read = 5;
@@ -714,8 +809,16 @@ impl AggregatedSocketEvent {
         self.bytes_read = ::std::option::Option::Some(v);
     }
 
-    pub fn get_bytes_read<'a>(&self) -> i64 {
+    pub fn get_bytes_read(&self) -> i64 {
         self.bytes_read.unwrap_or(0)
+    }
+
+    fn get_bytes_read_for_reflect(&self) -> &::std::option::Option<i64> {
+        &self.bytes_read
+    }
+
+    fn mut_bytes_read_for_reflect(&mut self) -> &mut ::std::option::Option<i64> {
+        &mut self.bytes_read
     }
 
     // optional int64 bytes_written = 6;
@@ -733,8 +836,16 @@ impl AggregatedSocketEvent {
         self.bytes_written = ::std::option::Option::Some(v);
     }
 
-    pub fn get_bytes_written<'a>(&self) -> i64 {
+    pub fn get_bytes_written(&self) -> i64 {
         self.bytes_written.unwrap_or(0)
+    }
+
+    fn get_bytes_written_for_reflect(&self) -> &::std::option::Option<i64> {
+        &self.bytes_written
+    }
+
+    fn mut_bytes_written_for_reflect(&mut self) -> &mut ::std::option::Option<i64> {
+        &mut self.bytes_written
     }
 }
 
@@ -744,49 +855,49 @@ impl ::protobuf::Message for AggregatedSocketEvent {
     }
 
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
-        while !try!(is.eof()) {
-            let (field_number, wire_type) = try!(is.read_tag_unpack());
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.id = ::std::option::Option::Some(tmp);
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.endpoint_id = ::std::option::Option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_enum());
+                    let tmp = is.read_enum()?;
                     self.channel_auth_type = ::std::option::Option::Some(tmp);
                 },
                 4 => {
-                    try!(::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.socket_event));
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.socket_event)?;
                 },
                 5 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int64());
+                    let tmp = is.read_int64()?;
                     self.bytes_read = ::std::option::Option::Some(tmp);
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int64());
+                    let tmp = is.read_int64()?;
                     self.bytes_written = ::std::option::Option::Some(tmp);
                 },
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields()));
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
                 },
             };
         }
@@ -797,24 +908,24 @@ impl ::protobuf::Message for AggregatedSocketEvent {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        for value in self.id.iter() {
-            my_size += ::protobuf::rt::value_size(1, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.id {
+            my_size += ::protobuf::rt::value_size(1, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.endpoint_id.iter() {
-            my_size += ::protobuf::rt::value_size(2, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.endpoint_id {
+            my_size += ::protobuf::rt::value_size(2, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.channel_auth_type.iter() {
-            my_size += ::protobuf::rt::enum_size(3, *value);
+        if let Some(v) = self.channel_auth_type {
+            my_size += ::protobuf::rt::enum_size(3, v);
         };
-        for value in self.socket_event.iter() {
+        for value in &self.socket_event {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
-        for value in self.bytes_read.iter() {
-            my_size += ::protobuf::rt::value_size(5, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.bytes_read {
+            my_size += ::protobuf::rt::value_size(5, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.bytes_written.iter() {
-            my_size += ::protobuf::rt::value_size(6, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.bytes_written {
+            my_size += ::protobuf::rt::value_size(6, v, ::protobuf::wire_format::WireTypeVarint);
         };
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -823,26 +934,26 @@ impl ::protobuf::Message for AggregatedSocketEvent {
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
         if let Some(v) = self.id {
-            try!(os.write_int32(1, v));
+            os.write_int32(1, v)?;
         };
         if let Some(v) = self.endpoint_id {
-            try!(os.write_int32(2, v));
+            os.write_int32(2, v)?;
         };
         if let Some(v) = self.channel_auth_type {
-            try!(os.write_enum(3, v.value()));
+            os.write_enum(3, v.value())?;
         };
-        for v in self.socket_event.iter() {
-            try!(os.write_tag(4, ::protobuf::wire_format::WireTypeLengthDelimited));
-            try!(os.write_raw_varint32(v.get_cached_size()));
-            try!(v.write_to_with_cached_sizes(os));
+        for v in &self.socket_event {
+            os.write_tag(4, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
         };
         if let Some(v) = self.bytes_read {
-            try!(os.write_int64(5, v));
+            os.write_int64(5, v)?;
         };
         if let Some(v) = self.bytes_written {
-            try!(os.write_int64(6, v));
+            os.write_int64(6, v)?;
         };
-        try!(os.write_unknown_fields(self.get_unknown_fields()));
+        os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
 
@@ -850,20 +961,22 @@ impl ::protobuf::Message for AggregatedSocketEvent {
         self.cached_size.get()
     }
 
-    fn get_unknown_fields<'s>(&'s self) -> &'s ::protobuf::UnknownFields {
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
         &self.unknown_fields
     }
 
-    fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
-    }
-
-    fn type_id(&self) -> ::std::any::TypeId {
-        ::std::any::TypeId::of::<AggregatedSocketEvent>()
     }
 
     fn as_any(&self) -> &::std::any::Any {
         self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -889,19 +1002,7 @@ impl ::protobuf::Clear for AggregatedSocketEvent {
     }
 }
 
-impl ::std::cmp::PartialEq for AggregatedSocketEvent {
-    fn eq(&self, other: &AggregatedSocketEvent) -> bool {
-        self.id == other.id &&
-        self.endpoint_id == other.endpoint_id &&
-        self.channel_auth_type == other.channel_auth_type &&
-        self.socket_event == other.socket_event &&
-        self.bytes_read == other.bytes_read &&
-        self.bytes_written == other.bytes_written &&
-        self.unknown_fields == other.unknown_fields
-    }
-}
-
-#[derive(Clone,Default,Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 pub struct Log {
     // message fields
     aggregated_socket_event: ::protobuf::RepeatedField<AggregatedSocketEvent>,
@@ -909,7 +1010,7 @@ pub struct Log {
     num_evicted_socket_events: ::std::option::Option<i32>,
     // special fields
     unknown_fields: ::protobuf::UnknownFields,
-    cached_size: ::std::cell::Cell<u32>,
+    cached_size: ::protobuf::CachedSize,
 }
 
 // see codegen.rs for the explanation why impl Sync explicitly
@@ -926,15 +1027,7 @@ impl Log {
             ptr: 0 as *const Log,
         };
         unsafe {
-            instance.get(|| {
-                Log {
-                    aggregated_socket_event: ::protobuf::RepeatedField::new(),
-                    num_evicted_aggregated_socket_events: ::std::option::Option::None,
-                    num_evicted_socket_events: ::std::option::Option::None,
-                    unknown_fields: ::protobuf::UnknownFields::new(),
-                    cached_size: ::std::cell::Cell::new(0),
-                }
-            })
+            instance.get(Log::new)
         }
     }
 
@@ -950,7 +1043,7 @@ impl Log {
     }
 
     // Mutable pointer to the field.
-    pub fn mut_aggregated_socket_event<'a>(&'a mut self) -> &'a mut ::protobuf::RepeatedField<AggregatedSocketEvent> {
+    pub fn mut_aggregated_socket_event(&mut self) -> &mut ::protobuf::RepeatedField<AggregatedSocketEvent> {
         &mut self.aggregated_socket_event
     }
 
@@ -959,8 +1052,16 @@ impl Log {
         ::std::mem::replace(&mut self.aggregated_socket_event, ::protobuf::RepeatedField::new())
     }
 
-    pub fn get_aggregated_socket_event<'a>(&'a self) -> &'a [AggregatedSocketEvent] {
+    pub fn get_aggregated_socket_event(&self) -> &[AggregatedSocketEvent] {
         &self.aggregated_socket_event
+    }
+
+    fn get_aggregated_socket_event_for_reflect(&self) -> &::protobuf::RepeatedField<AggregatedSocketEvent> {
+        &self.aggregated_socket_event
+    }
+
+    fn mut_aggregated_socket_event_for_reflect(&mut self) -> &mut ::protobuf::RepeatedField<AggregatedSocketEvent> {
+        &mut self.aggregated_socket_event
     }
 
     // optional int32 num_evicted_aggregated_socket_events = 2;
@@ -978,8 +1079,16 @@ impl Log {
         self.num_evicted_aggregated_socket_events = ::std::option::Option::Some(v);
     }
 
-    pub fn get_num_evicted_aggregated_socket_events<'a>(&self) -> i32 {
+    pub fn get_num_evicted_aggregated_socket_events(&self) -> i32 {
         self.num_evicted_aggregated_socket_events.unwrap_or(0)
+    }
+
+    fn get_num_evicted_aggregated_socket_events_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.num_evicted_aggregated_socket_events
+    }
+
+    fn mut_num_evicted_aggregated_socket_events_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.num_evicted_aggregated_socket_events
     }
 
     // optional int32 num_evicted_socket_events = 3;
@@ -997,8 +1106,16 @@ impl Log {
         self.num_evicted_socket_events = ::std::option::Option::Some(v);
     }
 
-    pub fn get_num_evicted_socket_events<'a>(&self) -> i32 {
+    pub fn get_num_evicted_socket_events(&self) -> i32 {
         self.num_evicted_socket_events.unwrap_or(0)
+    }
+
+    fn get_num_evicted_socket_events_for_reflect(&self) -> &::std::option::Option<i32> {
+        &self.num_evicted_socket_events
+    }
+
+    fn mut_num_evicted_socket_events_for_reflect(&mut self) -> &mut ::std::option::Option<i32> {
+        &mut self.num_evicted_socket_events
     }
 }
 
@@ -1008,28 +1125,28 @@ impl ::protobuf::Message for Log {
     }
 
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
-        while !try!(is.eof()) {
-            let (field_number, wire_type) = try!(is.read_tag_unpack());
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    try!(::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.aggregated_socket_event));
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.aggregated_socket_event)?;
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.num_evicted_aggregated_socket_events = ::std::option::Option::Some(tmp);
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     };
-                    let tmp = try!(is.read_int32());
+                    let tmp = is.read_int32()?;
                     self.num_evicted_socket_events = ::std::option::Option::Some(tmp);
                 },
                 _ => {
-                    try!(::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields()));
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
                 },
             };
         }
@@ -1040,15 +1157,15 @@ impl ::protobuf::Message for Log {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        for value in self.aggregated_socket_event.iter() {
+        for value in &self.aggregated_socket_event {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
-        for value in self.num_evicted_aggregated_socket_events.iter() {
-            my_size += ::protobuf::rt::value_size(2, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.num_evicted_aggregated_socket_events {
+            my_size += ::protobuf::rt::value_size(2, v, ::protobuf::wire_format::WireTypeVarint);
         };
-        for value in self.num_evicted_socket_events.iter() {
-            my_size += ::protobuf::rt::value_size(3, *value, ::protobuf::wire_format::WireTypeVarint);
+        if let Some(v) = self.num_evicted_socket_events {
+            my_size += ::protobuf::rt::value_size(3, v, ::protobuf::wire_format::WireTypeVarint);
         };
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -1056,18 +1173,18 @@ impl ::protobuf::Message for Log {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
-        for v in self.aggregated_socket_event.iter() {
-            try!(os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited));
-            try!(os.write_raw_varint32(v.get_cached_size()));
-            try!(v.write_to_with_cached_sizes(os));
+        for v in &self.aggregated_socket_event {
+            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
         };
         if let Some(v) = self.num_evicted_aggregated_socket_events {
-            try!(os.write_int32(2, v));
+            os.write_int32(2, v)?;
         };
         if let Some(v) = self.num_evicted_socket_events {
-            try!(os.write_int32(3, v));
+            os.write_int32(3, v)?;
         };
-        try!(os.write_unknown_fields(self.get_unknown_fields()));
+        os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
 
@@ -1075,20 +1192,22 @@ impl ::protobuf::Message for Log {
         self.cached_size.get()
     }
 
-    fn get_unknown_fields<'s>(&'s self) -> &'s ::protobuf::UnknownFields {
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
         &self.unknown_fields
     }
 
-    fn mut_unknown_fields<'s>(&'s mut self) -> &'s mut ::protobuf::UnknownFields {
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
         &mut self.unknown_fields
-    }
-
-    fn type_id(&self) -> ::std::any::TypeId {
-        ::std::any::TypeId::of::<Log>()
     }
 
     fn as_any(&self) -> &::std::any::Any {
         self as &::std::any::Any
+    }
+    fn as_any_mut(&mut self) -> &mut ::std::any::Any {
+        self as &mut ::std::any::Any
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<::std::any::Any> {
+        self
     }
 
     fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
@@ -1108,15 +1227,6 @@ impl ::protobuf::Clear for Log {
         self.clear_num_evicted_aggregated_socket_events();
         self.clear_num_evicted_socket_events();
         self.unknown_fields.clear();
-    }
-}
-
-impl ::std::cmp::PartialEq for Log {
-    fn eq(&self, other: &Log) -> bool {
-        self.aggregated_socket_event == other.aggregated_socket_event &&
-        self.num_evicted_aggregated_socket_events == other.num_evicted_aggregated_socket_events &&
-        self.num_evicted_socket_events == other.num_evicted_socket_events &&
-        self.unknown_fields == other.unknown_fields
     }
 }
 
