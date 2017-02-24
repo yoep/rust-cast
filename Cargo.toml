@@ -7,15 +7,15 @@ repository = "https://github.com/azasypkin/rust-cast"
 readme = "README.md"
 license = "MIT"
 keywords = ["cast", "chromecast", "google"]
-version = "0.9.3"
+version = "0.9.4"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 exclude = ["protobuf/*"]
 build = "build.rs"
 
 [dependencies]
 byteorder = "1.0.0"
-log = "0.3.6"
-openssl = "0.9.7"
+log = "0.3.7"
+openssl = "0.9.8"
 protobuf = "1.2.2"
 serde = "0.9.11"
 serde_json = "0.9.9"
