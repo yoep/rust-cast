@@ -27,16 +27,16 @@ impl Display for SslError {
 
 impl StdError for SslError {
     fn description(&self) -> &str {
-        match self {
-            &SslError::Generic(ref e) => e.description(),
-            &SslError::Handshake(ref e) => e.description(),
+        match *self {
+            SslError::Generic(ref e) => e.description(),
+            SslError::Handshake(ref e) => e.description(),
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
-        match self {
-            &SslError::Generic(ref e) => e.cause(),
-            &SslError::Handshake(ref e) => e.cause(),
+        match *self {
+            SslError::Generic(ref e) => e.cause(),
+            SslError::Handshake(ref e) => e.cause(),
         }
     }
 }
@@ -55,7 +55,6 @@ pub enum Error {
     Serialization(SerializationError),
     /// This variant includes any error that comes from OpenSSL.
     Ssl(SslError),
-
 }
 
 impl Display for Error {

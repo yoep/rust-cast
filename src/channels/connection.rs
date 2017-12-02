@@ -8,11 +8,11 @@ use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
-const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.connection";
-const CHANNEL_USER_AGENT: &'static str = "RustCast";
+const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.connection";
+const CHANNEL_USER_AGENT: &str = "RustCast";
 
-const MESSAGE_TYPE_CONNECT: &'static str = "CONNECT";
-const MESSAGE_TYPE_CLOSE: &'static str = "CLOSE";
+const MESSAGE_TYPE_CONNECT: &str = "CONNECT";
+const MESSAGE_TYPE_CLOSE: &str = "CLOSE";
 
 #[derive(Debug)]
 pub enum ConnectionResponse {
@@ -21,26 +21,36 @@ pub enum ConnectionResponse {
     NotImplemented(String, serde_json::Value),
 }
 
-pub struct ConnectionChannel<'a, W> where W: Read + Write {
+pub struct ConnectionChannel<'a, W>
+where
+    W: Read + Write,
+{
     sender: Cow<'a, str>,
     message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
-    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>)
-        -> ConnectionChannel<'a, W> where S: Into<Cow<'a, str>> {
+impl<'a, W> ConnectionChannel<'a, W>
+where
+    W: Read + Write,
+{
+    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>) -> ConnectionChannel<'a, W>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         ConnectionChannel {
             sender: sender.into(),
             message_manager: message_manager,
         }
     }
 
-    pub fn connect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = serde_json::to_string(
-            &proxies::connection::ConnectionRequest {
-                typ: MESSAGE_TYPE_CONNECT.to_string(),
-                user_agent: CHANNEL_USER_AGENT.to_string(),
-            })?;
+    pub fn connect<S>(&self, destination: S) -> Result<(), Error>
+    where
+        S: Into<Cow<'a, str>>,
+    {
+        let payload = serde_json::to_string(&proxies::connection::ConnectionRequest {
+            typ: MESSAGE_TYPE_CONNECT.to_string(),
+            user_agent: CHANNEL_USER_AGENT.to_string(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -50,12 +60,14 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
         })
     }
 
-    pub fn disconnect<S>(&self, destination: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
-        let payload = serde_json::to_string(
-            &proxies::connection::ConnectionRequest {
-                typ: MESSAGE_TYPE_CLOSE.to_string(),
-                user_agent: CHANNEL_USER_AGENT.to_string(),
-            })?;
+    pub fn disconnect<S>(&self, destination: S) -> Result<(), Error>
+    where
+        S: Into<Cow<'a, str>>,
+    {
+        let payload = serde_json::to_string(&proxies::connection::ConnectionRequest {
+            typ: MESSAGE_TYPE_CLOSE.to_string(),
+            user_agent: CHANNEL_USER_AGENT.to_string(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -71,12 +83,18 @@ impl<'a, W> ConnectionChannel<'a, W> where W: Read + Write {
 
     pub fn parse(&self, message: &CastMessage) -> Result<ConnectionResponse, Error> {
         let reply = match message.payload {
-            CastMessagePayload::String(ref payload) => serde_json::from_str::<serde_json::Value>(
-                payload)?,
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
+            CastMessagePayload::String(ref payload) => {
+                serde_json::from_str::<serde_json::Value>(payload)?
+            }
+            _ => {
+                return Err(Error::Internal(
+                    "Binary payload is not supported!".to_string(),
+                ))
+            }
         };
 
-        let message_type = reply.as_object()
+        let message_type = reply
+            .as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")

@@ -11,20 +11,20 @@ use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
-const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.receiver";
+const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.receiver";
 
-const MESSAGE_TYPE_LAUNCH: &'static str = "LAUNCH";
-const MESSAGE_TYPE_STOP: &'static str = "STOP";
-const MESSAGE_TYPE_GET_STATUS: &'static str = "GET_STATUS";
-const MESSAGE_TYPE_SET_VOLUME: &'static str = "SET_VOLUME";
+const MESSAGE_TYPE_LAUNCH: &str = "LAUNCH";
+const MESSAGE_TYPE_STOP: &str = "STOP";
+const MESSAGE_TYPE_GET_STATUS: &str = "GET_STATUS";
+const MESSAGE_TYPE_SET_VOLUME: &str = "SET_VOLUME";
 
-const MESSAGE_TYPE_RECEIVER_STATUS: &'static str = "RECEIVER_STATUS";
-const MESSAGE_TYPE_LAUNCH_ERROR: &'static str = "LAUNCH_ERROR";
-const MESSAGE_TYPE_INVALID_REQUEST: &'static str = "INVALID_REQUEST";
+const MESSAGE_TYPE_RECEIVER_STATUS: &str = "RECEIVER_STATUS";
+const MESSAGE_TYPE_LAUNCH_ERROR: &str = "LAUNCH_ERROR";
+const MESSAGE_TYPE_INVALID_REQUEST: &str = "INVALID_REQUEST";
 
-const APP_DEFAULT_MEDIA_RECEIVER_ID: &'static str = "CC1AD845";
-const APP_BACKDROP_ID: &'static str = "E8C28D3C";
-const APP_YOUTUBE_ID: &'static str = "233637DE";
+const APP_DEFAULT_MEDIA_RECEIVER_ID: &str = "CC1AD845";
+const APP_BACKDROP_ID: &str = "E8C28D3C";
+const APP_YOUTUBE_ID: &str = "233637DE";
 
 /// Structure that describes possible cast device volume options.
 #[derive(Debug)]
@@ -146,7 +146,7 @@ impl FromStr for CastDeviceApp {
             APP_DEFAULT_MEDIA_RECEIVER_ID | "default" => CastDeviceApp::DefaultMediaReceiver,
             APP_BACKDROP_ID | "backdrop" => CastDeviceApp::Backdrop,
             APP_YOUTUBE_ID | "youtube" => CastDeviceApp::YouTube,
-            custom @ _ => CastDeviceApp::Custom(custom.to_string())
+            custom => CastDeviceApp::Custom(custom.to_string()),
         };
 
         Ok(app)
@@ -164,15 +164,27 @@ impl ToString for CastDeviceApp {
     }
 }
 
-pub struct ReceiverChannel<'a, W> where W: Write + Read {
+pub struct ReceiverChannel<'a, W>
+where
+    W: Write + Read,
+{
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
     message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
-    pub fn new<S>(sender: S, receiver: S, message_manager: Rc<MessageManager<W>>)
-        -> ReceiverChannel<'a, W> where S: Into<Cow<'a, str>> {
+impl<'a, W> ReceiverChannel<'a, W>
+where
+    W: Write + Read,
+{
+    pub fn new<S>(
+        sender: S,
+        receiver: S,
+        message_manager: Rc<MessageManager<W>>,
+    ) -> ReceiverChannel<'a, W>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         ReceiverChannel {
             sender: sender.into(),
             receiver: receiver.into(),
@@ -194,12 +206,11 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
     pub fn launch_app(&self, app: &CastDeviceApp) -> Result<Application, Error> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = serde_json::to_string(
-            &proxies::receiver::AppLaunchRequest {
-                typ: MESSAGE_TYPE_LAUNCH.to_string(),
-                request_id: request_id,
-                app_id: app.to_string(),
-            })?;
+        let payload = serde_json::to_string(&proxies::receiver::AppLaunchRequest {
+            typ: MESSAGE_TYPE_LAUNCH.to_string(),
+            request_id: request_id,
+            app_id: app.to_string(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -216,23 +227,19 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
             }
 
             match self.parse(message)? {
-                ReceiverResponse::Status(mut status) => {
-                    if status.request_id == request_id {
-                        return Ok(Some(status.applications.remove(0)));
-                    }
+                ReceiverResponse::Status(mut status) => if status.request_id == request_id {
+                    return Ok(Some(status.applications.remove(0)));
                 },
-                ReceiverResponse::LaunchError(error) => {
-                    if error.request_id == request_id {
-                        return Err(Error::Internal(
-                            format!("Could not run application ({}).",
-                                    error.reason.unwrap_or("Unknown".to_string())))
-                        );
-                    }
+                ReceiverResponse::LaunchError(error) => if error.request_id == request_id {
+                    return Err(Error::Internal(format!(
+                        "Could not run application ({}).",
+                        error.reason.unwrap_or_else(|| "Unknown".to_string())
+                    )));
                 },
                 _ => {}
             }
 
-            return Ok(None);
+            Ok(None)
         })
     }
 
@@ -240,15 +247,17 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
     ///
     /// # Arguments
     /// * `session_id` - identifier of the active application session from `Application` instance.
-    pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error> where S: Into<Cow<'a, str>> {
+    pub fn stop_app<S>(&self, session_id: S) -> Result<(), Error>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = serde_json::to_string(
-            &proxies::receiver::AppStopRequest {
-                typ: MESSAGE_TYPE_STOP.to_string(),
-                request_id: request_id,
-                session_id: session_id.into(),
-            })?;
+        let payload = serde_json::to_string(&proxies::receiver::AppStopRequest {
+            typ: MESSAGE_TYPE_STOP.to_string(),
+            request_id: request_id,
+            session_id: session_id.into(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -265,23 +274,19 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
             }
 
             match self.parse(message)? {
-                ReceiverResponse::Status(status) => {
-                    if status.request_id == request_id {
-                        return Ok(Some(()));
-                    }
+                ReceiverResponse::Status(status) => if status.request_id == request_id {
+                    return Ok(Some(()));
                 },
-                ReceiverResponse::InvalidRequest(error) => {
-                    if error.request_id == request_id {
-                        return Err(Error::Internal(
-                            format!("Invalid request ({}).",
-                                    error.reason.unwrap_or("Unknown".to_string())))
-                        );
-                    }
+                ReceiverResponse::InvalidRequest(error) => if error.request_id == request_id {
+                    return Err(Error::Internal(format!(
+                        "Invalid request ({}).",
+                        error.reason.unwrap_or_else(|| "Unknown".to_string())
+                    )));
                 },
                 _ => {}
             }
 
-            return Ok(None);
+            Ok(None)
         })
     }
 
@@ -293,20 +298,17 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
     pub fn get_status(&self) -> Result<Status, Error> {
         let request_id = self.message_manager.generate_request_id();
 
-        let payload = serde_json::to_string(
-            &proxies::receiver::GetStatusRequest {
-                typ: MESSAGE_TYPE_GET_STATUS.to_string(),
-                request_id: request_id,
-            })?;
+        let payload = serde_json::to_string(&proxies::receiver::GetStatusRequest {
+            typ: MESSAGE_TYPE_GET_STATUS.to_string(),
+            request_id: request_id,
+        })?;
 
-        self.message_manager.send(
-            CastMessage {
-                namespace: CHANNEL_NAMESPACE.to_string(),
-                source: self.sender.to_string(),
-                destination: self.receiver.to_string(),
-                payload: CastMessagePayload::String(payload),
-            }
-        )?;
+        self.message_manager.send(CastMessage {
+            namespace: CHANNEL_NAMESPACE.to_string(),
+            source: self.sender.to_string(),
+            destination: self.receiver.to_string(),
+            payload: CastMessagePayload::String(payload),
+        })?;
 
         self.message_manager.receive_find_map(|message| {
             if !self.can_handle(message) {
@@ -320,7 +322,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                 }
             }
 
-            return Ok(None);
+            Ok(None)
         })
     }
 
@@ -338,19 +340,21 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
     /// # Errors
     ///
     /// Usually method can fail only if network connection with cast device is lost for some reason.
-    pub fn set_volume<T>(&self, volume: T) -> Result<Volume, Error> where T: Into<Volume> {
+    pub fn set_volume<T>(&self, volume: T) -> Result<Volume, Error>
+    where
+        T: Into<Volume>,
+    {
         let request_id = self.message_manager.generate_request_id();
         let volume = volume.into();
 
-        let payload = serde_json::to_string(
-            &proxies::receiver::SetVolumeRequest {
-                typ: MESSAGE_TYPE_SET_VOLUME.to_string(),
-                request_id: request_id,
-                volume: proxies::receiver::Volume {
-                    level: volume.level,
-                    muted: volume.muted,
-                },
-            })?;
+        let payload = serde_json::to_string(&proxies::receiver::SetVolumeRequest {
+            typ: MESSAGE_TYPE_SET_VOLUME.to_string(),
+            request_id: request_id,
+            volume: proxies::receiver::Volume {
+                level: volume.level,
+                muted: volume.muted,
+            },
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -371,7 +375,7 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                 }
             }
 
-            return Ok(None);
+            Ok(None)
         })
     }
 
@@ -381,12 +385,18 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
     pub fn parse(&self, message: &CastMessage) -> Result<ReceiverResponse, Error> {
         let reply = match message.payload {
-            CastMessagePayload::String(ref payload) => serde_json::from_str::<serde_json::Value>(
-                payload)?,
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
+            CastMessagePayload::String(ref payload) => {
+                serde_json::from_str::<serde_json::Value>(payload)?
+            }
+            _ => {
+                return Err(Error::Internal(
+                    "Binary payload is not supported!".to_string(),
+                ))
+            }
         };
 
-        let message_type = reply.as_object()
+        let message_type = reply
+            .as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
@@ -394,22 +404,29 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
 
         let response = match message_type.as_ref() {
             MESSAGE_TYPE_RECEIVER_STATUS => {
-                let status_reply: proxies::receiver::StatusReply = serde_json::value::from_value(
-                    reply)?;
+                let status_reply: proxies::receiver::StatusReply =
+                    serde_json::value::from_value(reply)?;
 
                 let status = Status {
                     request_id: status_reply.request_id,
-                    applications: status_reply.status.applications.iter().map(|ref app| {
-                        Application {
-                            app_id: app.app_id.clone(),
-                            session_id: app.session_id.clone(),
-                            transport_id: app.transport_id.clone(),
-                            namespaces: app.namespaces.iter().map(|ref ns| ns.name.clone())
-                                .collect::<Vec<String>>(),
-                            display_name: app.display_name.clone(),
-                            status_text: app.status_text.clone(),
-                        }
-                    }).collect::<Vec<Application>>(),
+                    applications: status_reply
+                        .status
+                        .applications
+                        .iter()
+                        .map(|app| {
+                            Application {
+                                app_id: app.app_id.clone(),
+                                session_id: app.session_id.clone(),
+                                transport_id: app.transport_id.clone(),
+                                namespaces: app.namespaces
+                                    .iter()
+                                    .map(|ns| ns.name.clone())
+                                    .collect::<Vec<String>>(),
+                                display_name: app.display_name.clone(),
+                                status_text: app.status_text.clone(),
+                            }
+                        })
+                        .collect::<Vec<Application>>(),
                     is_active_input: status_reply.status.is_active_input,
                     is_stand_by: status_reply.status.is_stand_by,
                     volume: Volume {
@@ -419,25 +436,25 @@ impl<'a, W> ReceiverChannel<'a, W> where W: Write + Read {
                 };
 
                 ReceiverResponse::Status(status)
-            },
+            }
             MESSAGE_TYPE_LAUNCH_ERROR => {
-                let reply: proxies::receiver::LaunchErrorReply = serde_json::value::from_value(
-                    reply)?;
+                let reply: proxies::receiver::LaunchErrorReply =
+                    serde_json::value::from_value(reply)?;
 
                 ReceiverResponse::LaunchError(LaunchError {
                     request_id: reply.request_id,
                     reason: reply.reason,
                 })
-            },
+            }
             MESSAGE_TYPE_INVALID_REQUEST => {
-                let reply: proxies::receiver::InvalidRequestReply = serde_json::value::from_value(
-                    reply)?;
+                let reply: proxies::receiver::InvalidRequestReply =
+                    serde_json::value::from_value(reply)?;
 
                 ReceiverResponse::InvalidRequest(InvalidRequest {
                     request_id: reply.request_id,
                     reason: reply.reason,
                 })
-            },
+            }
             _ => ReceiverResponse::NotImplemented(message_type.to_string(), reply),
         };
 

@@ -6,6 +6,8 @@ extern crate log;
 extern crate openssl;
 extern crate protobuf;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 
 mod cast;
@@ -18,7 +20,7 @@ use std::borrow::Cow;
 use std::net::TcpStream;
 use std::rc::Rc;
 
-use openssl::ssl::{SslConnectorBuilder, SslStream, SslMethod, SSL_VERIFY_NONE};
+use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream, SSL_VERIFY_NONE};
 
 use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::connection::{ConnectionChannel, ConnectionResponse};
@@ -29,8 +31,8 @@ use errors::Error;
 
 use message_manager::{CastMessage, MessageManager};
 
-const DEFAULT_SENDER_ID: &'static str = "sender-0";
-const DEFAULT_RECEIVER_ID: &'static str = "receiver-0";
+const DEFAULT_SENDER_ID: &str = "sender-0";
+const DEFAULT_RECEIVER_ID: &str = "receiver-0";
 
 /// Supported channel message types.
 pub enum ChannelMessage {
@@ -86,11 +88,17 @@ impl<'a> CastDevice<'a> {
     /// # Return value
     ///
     /// Instance of `CastDevice` that allows you to manage connection.
-    pub fn connect<S>(host: S, port: u16)
-        -> Result<CastDevice<'a>, Error> where S: Into<Cow<'a, str>> {
+    pub fn connect<S>(host: S, port: u16) -> Result<CastDevice<'a>, Error>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         let host = host.into();
 
-        debug!("Establishing connection with cast device at {}:{}...", host, port);
+        debug!(
+            "Establishing connection with cast device at {}:{}...",
+            host,
+            port
+        );
 
         let connector = SslConnectorBuilder::new(SslMethod::tls())?.build();
         let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
@@ -121,26 +129,35 @@ impl<'a> CastDevice<'a> {
     /// # Return value
     ///
     /// Instance of `CastDevice` that allows you to manage connection.
-    pub fn connect_without_host_verification<S>(host: S, port: u16)
-                      -> Result<CastDevice<'a>, Error> where S: Into<Cow<'a, str>> {
+    pub fn connect_without_host_verification<S>(host: S, port: u16) -> Result<CastDevice<'a>, Error>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         let host = host.into();
 
-        debug!("Establishing non-verified connection with cast device at {}:{}...", host, port);
+        debug!(
+            "Establishing non-verified connection with cast device at {}:{}...",
+            host,
+            port
+        );
 
         let mut builder = SslConnectorBuilder::new(SslMethod::tls())?;
 
         {
-            let mut ctx_builder = builder.builder_mut();
+            let ctx_builder = builder.builder_mut();
             ctx_builder.set_verify(SSL_VERIFY_NONE);
         }
 
         let connector = builder.build();
         let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
 
-        debug!("Connection with {}:{} successfully established.", host, port);
+        debug!(
+            "Connection with {}:{} successfully established.",
+            host,
+            port
+        );
 
-        CastDevice::connect_to_device(
-            connector.danger_connect_without_providing_domain_for_certificate_verification_and_server_name_indication(tcp_stream)?)
+        CastDevice::connect_to_device(connector.connect(host.as_ref(), tcp_stream)?)
     }
 
 
@@ -169,11 +186,15 @@ impl<'a> CastDevice<'a> {
         let cast_message = self.message_manager.receive()?;
 
         if self.connection.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Connection(self.connection.parse(&cast_message)?));
+            return Ok(ChannelMessage::Connection(
+                self.connection.parse(&cast_message)?,
+            ));
         }
 
         if self.heartbeat.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Heartbeat(self.heartbeat.parse(&cast_message)?));
+            return Ok(ChannelMessage::Heartbeat(
+                self.heartbeat.parse(&cast_message)?,
+            ));
         }
 
         if self.media.can_handle(&cast_message) {
@@ -181,7 +202,9 @@ impl<'a> CastDevice<'a> {
         }
 
         if self.receiver.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Receiver(self.receiver.parse(&cast_message)?));
+            return Ok(ChannelMessage::Receiver(
+                self.receiver.parse(&cast_message)?,
+            ));
         }
 
         Ok(ChannelMessage::Raw(cast_message))
@@ -199,12 +222,18 @@ impl<'a> CastDevice<'a> {
     fn connect_to_device(ssl_stream: SslStream<TcpStream>) -> Result<CastDevice<'a>, Error> {
         let message_manager_rc = Rc::new(MessageManager::new(ssl_stream));
 
-        let heartbeat = HeartbeatChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                              message_manager_rc.clone());
-        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
-        let receiver = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID,
-                                            message_manager_rc.clone());
-        let media = MediaChannel::new(DEFAULT_SENDER_ID, message_manager_rc.clone());
+        let heartbeat = HeartbeatChannel::new(
+            DEFAULT_SENDER_ID,
+            DEFAULT_RECEIVER_ID,
+            Rc::clone(&message_manager_rc),
+        );
+        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, Rc::clone(&message_manager_rc));
+        let receiver = ReceiverChannel::new(
+            DEFAULT_SENDER_ID,
+            DEFAULT_RECEIVER_ID,
+            Rc::clone(&message_manager_rc),
+        );
+        let media = MediaChannel::new(DEFAULT_SENDER_ID, Rc::clone(&message_manager_rc));
 
         Ok(CastDevice {
             message_manager: message_manager_rc,

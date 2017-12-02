@@ -30,18 +30,24 @@ pub struct CastMessage {
 
 /// Static structure that is responsible for (de)serializing and sending/receiving Cast protocol
 /// messages.
-pub struct MessageManager<S> where S: Write + Read {
+pub struct MessageManager<S>
+where
+    S: Write + Read,
+{
     message_buffer: RefCell<Vec<CastMessage>>,
     stream: RefCell<S>,
-    request_conter: RefCell<i32>,
+    request_counter: RefCell<i32>,
 }
 
-impl<S> MessageManager<S> where S: Write + Read {
+impl<S> MessageManager<S>
+where
+    S: Write + Read,
+{
     pub fn new(stream: S) -> Self {
         MessageManager {
             stream: RefCell::new(stream),
             message_buffer: RefCell::new(vec![]),
-            request_conter: RefCell::new(1),
+            request_counter: RefCell::new(1),
         }
     }
 
@@ -63,22 +69,22 @@ impl<S> MessageManager<S> where S: Write + Read {
             CastMessagePayload::String(payload) => {
                 raw_message.set_payload_type(cast_channel::CastMessage_PayloadType::STRING);
                 raw_message.set_payload_utf8(payload);
-            },
+            }
 
             CastMessagePayload::Binary(payload) => {
                 raw_message.set_payload_type(cast_channel::CastMessage_PayloadType::BINARY);
                 raw_message.set_payload_binary(payload);
-            },
+            }
         };
 
         let message_content_buffer = utils::to_vec(&raw_message)?;
-        let message_length_buffer = utils::write_u32_to_buffer(
-            message_content_buffer.len() as u32)?;
+        let message_length_buffer =
+            utils::write_u32_to_buffer(message_content_buffer.len() as u32)?;
 
-        let mut writer = &mut *self.stream.borrow_mut();
+        let writer = &mut *self.stream.borrow_mut();
 
-        writer.write(&message_length_buffer)?;
-        writer.write(&message_content_buffer)?;
+        writer.write_all(&message_length_buffer)?;
+        writer.write_all(&message_content_buffer)?;
 
         debug!("Message sent: {:?}", raw_message);
 
@@ -96,9 +102,10 @@ impl<S> MessageManager<S> where S: Write + Read {
         let mut message_buffer = self.message_buffer.borrow_mut();
 
         // If we have messages in the buffer, let's return them from it.
-        match message_buffer.is_empty() {
-            false => Ok(message_buffer.remove(0)),
-            true => self.read(),
+        if message_buffer.is_empty() {
+            self.read()
+        } else {
+            Ok(message_buffer.remove(0))
         }
     }
 
@@ -127,8 +134,10 @@ impl<S> MessageManager<S> where S: Write + Read {
     /// # Return value
     ///
     /// `Result` containing parsed `CastMessage` or `Error`.
-    pub fn receive_find_map<F, B>(&self, f: F)
-        -> Result<B, Error> where F: Fn(&CastMessage) -> Result<Option<B>, Error> {
+    pub fn receive_find_map<F, B>(&self, f: F) -> Result<B, Error>
+    where
+        F: Fn(&CastMessage) -> Result<Option<B>, Error>,
+    {
         loop {
             let message = self.read()?;
 
@@ -136,7 +145,7 @@ impl<S> MessageManager<S> where S: Write + Read {
             // in the buffer, it can be later retrieved with `receive`.
             match f(&message)? {
                 Some(r) => return Ok(r),
-                None => self.message_buffer.borrow_mut().push(message)
+                None => self.message_buffer.borrow_mut().push(message),
             }
         }
     }
@@ -147,9 +156,9 @@ impl<S> MessageManager<S> where S: Write + Read {
     ///
     /// Unique (in the scope of this particular `MessageManager` instance) integer number.
     pub fn generate_request_id(&self) -> i32 {
-        let request_id = self.request_conter.borrow().clone() + 1;
+        let request_id = *self.request_counter.borrow() + 1;
 
-        *self.request_conter.borrow_mut() = request_id;
+        *self.request_counter.borrow_mut() = request_id;
 
         request_id
     }
@@ -162,19 +171,18 @@ impl<S> MessageManager<S> where S: Write + Read {
     fn read(&self) -> Result<CastMessage, Error> {
         let mut buffer: [u8; 4] = [0; 4];
 
-        let mut reader = &mut *self.stream.borrow_mut();
+        let reader = &mut *self.stream.borrow_mut();
 
         reader.read_exact(&mut buffer)?;
 
         let length = utils::read_u32_from_buffer(&buffer)?;
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
-        let mut limited_reader = reader.take(length as u64);
+        let mut limited_reader = reader.take(u64::from(length));
 
         limited_reader.read_to_end(&mut buffer)?;
 
-        let raw_message = utils::from_vec::<cast_channel::CastMessage>(
-            buffer.iter().cloned().collect())?;
+        let raw_message = utils::from_vec::<cast_channel::CastMessage>(buffer.to_vec())?;
 
         debug!("Message received: {:?}", raw_message);
 
@@ -183,11 +191,13 @@ impl<S> MessageManager<S> where S: Write + Read {
             source: raw_message.get_source_id().to_string(),
             destination: raw_message.get_destination_id().to_string(),
             payload: match raw_message.get_payload_type() {
-                cast_channel::CastMessage_PayloadType::STRING => CastMessagePayload::String(
-                    raw_message.get_payload_utf8().to_string()),
-                cast_channel::CastMessage_PayloadType::BINARY => CastMessagePayload::Binary(
-                    raw_message.get_payload_binary().to_owned()),
-            }
+                cast_channel::CastMessage_PayloadType::STRING => {
+                    CastMessagePayload::String(raw_message.get_payload_utf8().to_string())
+                }
+                cast_channel::CastMessage_PayloadType::BINARY => {
+                    CastMessagePayload::Binary(raw_message.get_payload_binary().to_owned())
+                }
+            },
         })
     }
 }

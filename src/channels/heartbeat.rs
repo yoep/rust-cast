@@ -8,10 +8,10 @@ use cast::proxies;
 use errors::Error;
 use message_manager::{CastMessage, CastMessagePayload, MessageManager};
 
-const CHANNEL_NAMESPACE: &'static str = "urn:x-cast:com.google.cast.tp.heartbeat";
+const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.heartbeat";
 
-const MESSAGE_TYPE_PING: &'static str = "PING";
-const MESSAGE_TYPE_PONG: &'static str = "PONG";
+const MESSAGE_TYPE_PING: &str = "PING";
+const MESSAGE_TYPE_PONG: &str = "PONG";
 
 #[derive(Debug)]
 pub enum HeartbeatResponse {
@@ -20,15 +20,27 @@ pub enum HeartbeatResponse {
     NotImplemented(String, serde_json::Value),
 }
 
-pub struct HeartbeatChannel<'a, W> where W: Read + Write {
+pub struct HeartbeatChannel<'a, W>
+where
+    W: Read + Write,
+{
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
     message_manager: Rc<MessageManager<W>>,
 }
 
-impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
-    pub fn new<S>(sender: S, receiver: S, message_manager: Rc<MessageManager<W>>)
-        -> HeartbeatChannel<'a, W> where S: Into<Cow<'a, str>> {
+impl<'a, W> HeartbeatChannel<'a, W>
+where
+    W: Read + Write,
+{
+    pub fn new<S>(
+        sender: S,
+        receiver: S,
+        message_manager: Rc<MessageManager<W>>,
+    ) -> HeartbeatChannel<'a, W>
+    where
+        S: Into<Cow<'a, str>>,
+    {
         HeartbeatChannel {
             sender: sender.into(),
             receiver: receiver.into(),
@@ -37,10 +49,9 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
     }
 
     pub fn ping(&self) -> Result<(), Error> {
-        let payload = serde_json::to_string(
-            &proxies::heartbeat::HeartBeatRequest {
-                typ: MESSAGE_TYPE_PING.to_string()
-            })?;
+        let payload = serde_json::to_string(&proxies::heartbeat::HeartBeatRequest {
+            typ: MESSAGE_TYPE_PING.to_string(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -51,10 +62,9 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
     }
 
     pub fn pong(&self) -> Result<(), Error> {
-        let payload = serde_json::to_string(
-            &proxies::heartbeat::HeartBeatRequest {
-                typ: MESSAGE_TYPE_PONG.to_string()
-            })?;
+        let payload = serde_json::to_string(&proxies::heartbeat::HeartBeatRequest {
+            typ: MESSAGE_TYPE_PONG.to_string(),
+        })?;
 
         self.message_manager.send(CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
@@ -70,12 +80,18 @@ impl<'a, W> HeartbeatChannel<'a, W> where W: Read + Write {
 
     pub fn parse(&self, message: &CastMessage) -> Result<HeartbeatResponse, Error> {
         let reply = match message.payload {
-            CastMessagePayload::String(ref payload) => serde_json::from_str::<serde_json::Value>(
-                payload)?,
-            _ => return Err(Error::Internal("Binary payload is not supported!".to_string())),
+            CastMessagePayload::String(ref payload) => {
+                serde_json::from_str::<serde_json::Value>(payload)?
+            }
+            _ => {
+                return Err(Error::Internal(
+                    "Binary payload is not supported!".to_string(),
+                ))
+            }
         };
 
-        let message_type = reply.as_object()
+        let message_type = reply
+            .as_object()
             .and_then(|object| object.get("type"))
             .and_then(|property| property.as_str())
             .unwrap_or("")
