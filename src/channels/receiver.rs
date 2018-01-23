@@ -413,18 +413,16 @@ where
                         .status
                         .applications
                         .iter()
-                        .map(|app| {
-                            Application {
-                                app_id: app.app_id.clone(),
-                                session_id: app.session_id.clone(),
-                                transport_id: app.transport_id.clone(),
-                                namespaces: app.namespaces
-                                    .iter()
-                                    .map(|ns| ns.name.clone())
-                                    .collect::<Vec<String>>(),
-                                display_name: app.display_name.clone(),
-                                status_text: app.status_text.clone(),
-                            }
+                        .map(|app| Application {
+                            app_id: app.app_id.clone(),
+                            session_id: app.session_id.clone(),
+                            transport_id: app.transport_id.clone(),
+                            namespaces: app.namespaces
+                                .iter()
+                                .map(|ns| ns.name.clone())
+                                .collect::<Vec<String>>(),
+                            display_name: app.display_name.clone(),
+                            status_text: app.status_text.clone(),
                         })
                         .collect::<Vec<Application>>(),
                     is_active_input: status_reply.status.is_active_input,

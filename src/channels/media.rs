@@ -238,7 +238,6 @@ impl ToString for PlayerState {
     }
 }
 
-
 /// Describes possible player idle reasons.
 #[derive(Debug)]
 pub enum IdleReason {
@@ -510,7 +509,7 @@ where
                 subtitle: x.subtitle.clone(),
                 images: x.images.iter().map(|i| i.encode()).collect(),
                 release_date: x.release_date.clone(),
-                .. proxies::media::Metadata::new(0)
+                ..proxies::media::Metadata::new(0)
             },
             Metadata::Movie(ref x) => proxies::media::Metadata {
                 title: x.title.clone(),
@@ -518,7 +517,7 @@ where
                 studio: x.studio.clone(),
                 images: x.images.iter().map(|i| i.encode()).collect(),
                 release_date: x.release_date.clone(),
-                .. proxies::media::Metadata::new(1)
+                ..proxies::media::Metadata::new(1)
             },
             Metadata::TvShow(ref x) => proxies::media::Metadata {
                 series_title: x.series_title.clone(),
@@ -527,7 +526,7 @@ where
                 episode: x.episode,
                 images: x.images.iter().map(|i| i.encode()).collect(),
                 original_air_date: x.original_air_date.clone(),
-                .. proxies::media::Metadata::new(2)
+                ..proxies::media::Metadata::new(2)
             },
             Metadata::MusicTrack(ref x) => proxies::media::Metadata {
                 album_name: x.album_name.clone(),
@@ -539,7 +538,7 @@ where
                 disc_number: x.disc_number,
                 images: x.images.iter().map(|i| i.encode()).collect(),
                 release_date: x.release_date.clone(),
-                .. proxies::media::Metadata::new(3)
+                ..proxies::media::Metadata::new(3)
             },
             Metadata::Photo(ref x) => proxies::media::Metadata {
                 title: x.title.clone(),
@@ -550,7 +549,7 @@ where
                 width: x.dimensions.map(|dims| dims.0),
                 height: x.dimensions.map(|dims| dims.1),
                 creation_date_time: x.creation_date_time.clone(),
-                .. proxies::media::Metadata::new(4)
+                ..proxies::media::Metadata::new(4)
             },
         });
 

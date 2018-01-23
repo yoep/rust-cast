@@ -20,7 +20,7 @@ use std::borrow::Cow;
 use std::net::TcpStream;
 use std::rc::Rc;
 
-use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream, SSL_VERIFY_NONE};
+use openssl::ssl::{SslConnector, SslMethod, SslStream, SslVerifyMode};
 
 use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::connection::{ConnectionChannel, ConnectionResponse};
@@ -96,11 +96,10 @@ impl<'a> CastDevice<'a> {
 
         debug!(
             "Establishing connection with cast device at {}:{}...",
-            host,
-            port
+            host, port
         );
 
-        let connector = SslConnectorBuilder::new(SslMethod::tls())?.build();
+        let connector = SslConnector::builder(SslMethod::tls())?.build();
         let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
 
         CastDevice::connect_to_device(connector.connect(host.as_ref(), tcp_stream)?)
@@ -137,29 +136,22 @@ impl<'a> CastDevice<'a> {
 
         debug!(
             "Establishing non-verified connection with cast device at {}:{}...",
-            host,
-            port
+            host, port
         );
 
-        let mut builder = SslConnectorBuilder::new(SslMethod::tls())?;
-
-        {
-            let ctx_builder = builder.builder_mut();
-            ctx_builder.set_verify(SSL_VERIFY_NONE);
-        }
+        let mut builder = SslConnector::builder(SslMethod::tls())?;
+        builder.set_verify(SslVerifyMode::NONE);
 
         let connector = builder.build();
         let tcp_stream = TcpStream::connect((host.as_ref(), port))?;
 
         debug!(
             "Connection with {}:{} successfully established.",
-            host,
-            port
+            host, port
         );
 
         CastDevice::connect_to_device(connector.connect(host.as_ref(), tcp_stream)?)
     }
-
 
     /// Waits for any message returned by cast device (e.g. Chromecast) and returns its parsed
     /// version.
@@ -186,15 +178,11 @@ impl<'a> CastDevice<'a> {
         let cast_message = self.message_manager.receive()?;
 
         if self.connection.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Connection(
-                self.connection.parse(&cast_message)?,
-            ));
+            return Ok(ChannelMessage::Connection(self.connection.parse(&cast_message)?));
         }
 
         if self.heartbeat.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Heartbeat(
-                self.heartbeat.parse(&cast_message)?,
-            ));
+            return Ok(ChannelMessage::Heartbeat(self.heartbeat.parse(&cast_message)?));
         }
 
         if self.media.can_handle(&cast_message) {
@@ -202,9 +190,7 @@ impl<'a> CastDevice<'a> {
         }
 
         if self.receiver.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Receiver(
-                self.receiver.parse(&cast_message)?,
-            ));
+            return Ok(ChannelMessage::Receiver(self.receiver.parse(&cast_message)?));
         }
 
         Ok(ChannelMessage::Raw(cast_message))
