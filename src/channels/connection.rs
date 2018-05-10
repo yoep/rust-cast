@@ -39,7 +39,7 @@ where
     {
         ConnectionChannel {
             sender: sender.into(),
-            message_manager: message_manager,
+            message_manager,
         }
     }
 

@@ -44,7 +44,7 @@ where
         HeartbeatChannel {
             sender: sender.into(),
             receiver: receiver.into(),
-            message_manager: message_manager,
+            message_manager,
         }
     }
 

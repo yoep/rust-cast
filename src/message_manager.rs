@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::io::{Read, Write};
 
 use cast::cast_channel;
-use utils;
 use errors::Error;
+use utils;
 
 /// Type of the payload that `CastMessage` can have.
 #[derive(Debug, Clone)]

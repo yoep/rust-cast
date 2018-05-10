@@ -188,7 +188,7 @@ where
         ReceiverChannel {
             sender: sender.into(),
             receiver: receiver.into(),
-            message_manager: message_manager,
+            message_manager,
         }
     }
 
@@ -208,7 +208,7 @@ where
 
         let payload = serde_json::to_string(&proxies::receiver::AppLaunchRequest {
             typ: MESSAGE_TYPE_LAUNCH.to_string(),
-            request_id: request_id,
+            request_id,
             app_id: app.to_string(),
         })?;
 
@@ -255,7 +255,7 @@ where
 
         let payload = serde_json::to_string(&proxies::receiver::AppStopRequest {
             typ: MESSAGE_TYPE_STOP.to_string(),
-            request_id: request_id,
+            request_id,
             session_id: session_id.into(),
         })?;
 
@@ -300,7 +300,7 @@ where
 
         let payload = serde_json::to_string(&proxies::receiver::GetStatusRequest {
             typ: MESSAGE_TYPE_GET_STATUS.to_string(),
-            request_id: request_id,
+            request_id,
         })?;
 
         self.message_manager.send(CastMessage {
@@ -349,7 +349,7 @@ where
 
         let payload = serde_json::to_string(&proxies::receiver::SetVolumeRequest {
             typ: MESSAGE_TYPE_SET_VOLUME.to_string(),
-            request_id: request_id,
+            request_id,
             volume: proxies::receiver::Volume {
                 level: volume.level,
                 muted: volume.muted,

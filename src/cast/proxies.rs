@@ -175,7 +175,7 @@ pub mod media {
     impl Metadata {
         pub fn new(metadata_type: u32) -> Metadata {
             Metadata {
-                metadata_type: metadata_type,
+                metadata_type,
                 title: None,
                 series_title: None,
                 album_name: None,

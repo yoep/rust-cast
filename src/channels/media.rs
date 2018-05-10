@@ -1,8 +1,8 @@
 use std::borrow::Cow;
-use std::str::FromStr;
-use std::string::ToString;
 use std::io::{Read, Write};
 use std::rc::Rc;
+use std::str::FromStr;
+use std::string::ToString;
 
 use serde_json;
 
@@ -184,7 +184,7 @@ pub struct Image {
 impl Image {
     pub fn new(url: String) -> Image {
         Image {
-            url: url,
+            url,
             dimensions: None,
         }
     }
@@ -427,7 +427,7 @@ where
     {
         MediaChannel {
             sender: sender.into(),
-            message_manager: message_manager,
+            message_manager,
         }
     }
 
@@ -454,8 +454,8 @@ where
 
         let payload = serde_json::to_string(&proxies::media::GetStatusRequest {
             typ: MESSAGE_TYPE_GET_STATUS.to_string(),
-            request_id: request_id,
-            media_session_id: media_session_id,
+            request_id,
+            media_session_id,
         })?;
 
         self.message_manager.send(CastMessage {
@@ -554,7 +554,7 @@ where
         });
 
         let payload = serde_json::to_string(&proxies::media::MediaRequest {
-            request_id: request_id,
+            request_id,
             session_id: session_id.into().to_string(),
             typ: MESSAGE_TYPE_LOAD.to_string(),
 
@@ -562,7 +562,7 @@ where
                 content_id: media.content_id.clone(),
                 stream_type: media.stream_type.to_string(),
                 content_type: media.content_type.clone(),
-                metadata: metadata,
+                metadata,
                 duration: media.duration,
             },
 
@@ -646,8 +646,8 @@ where
         let request_id = self.message_manager.generate_request_id();
 
         let payload = serde_json::to_string(&proxies::media::PlaybackGenericRequest {
-            request_id: request_id,
-            media_session_id: media_session_id,
+            request_id,
+            media_session_id,
             typ: MESSAGE_TYPE_PAUSE.to_string(),
             custom_data: proxies::media::CustomData::new(),
         })?;
@@ -680,8 +680,8 @@ where
         let request_id = self.message_manager.generate_request_id();
 
         let payload = serde_json::to_string(&proxies::media::PlaybackGenericRequest {
-            request_id: request_id,
-            media_session_id: media_session_id,
+            request_id,
+            media_session_id,
             typ: MESSAGE_TYPE_PLAY.to_string(),
             custom_data: proxies::media::CustomData::new(),
         })?;
@@ -715,8 +715,8 @@ where
         let request_id = self.message_manager.generate_request_id();
 
         let payload = serde_json::to_string(&proxies::media::PlaybackGenericRequest {
-            request_id: request_id,
-            media_session_id: media_session_id,
+            request_id,
+            media_session_id,
             typ: MESSAGE_TYPE_STOP.to_string(),
             custom_data: proxies::media::CustomData::new(),
         })?;
@@ -758,10 +758,10 @@ where
         let request_id = self.message_manager.generate_request_id();
 
         let payload = serde_json::to_string(&proxies::media::PlaybackSeekRequest {
-            request_id: request_id,
-            media_session_id: media_session_id,
+            request_id,
+            media_session_id,
             typ: MESSAGE_TYPE_SEEK.to_string(),
-            current_time: current_time,
+            current_time,
             resume_state: resume_state.map(|s| s.to_string()),
             custom_data: proxies::media::CustomData::new(),
         })?;

@@ -11,10 +11,10 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod cast;
-mod utils;
+pub mod channels;
 pub mod errors;
 pub mod message_manager;
-pub mod channels;
+mod utils;
 
 use std::borrow::Cow;
 use std::net::TcpStream;
@@ -22,10 +22,10 @@ use std::rc::Rc;
 
 use openssl::ssl::{SslConnector, SslMethod, SslStream, SslVerifyMode};
 
-use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::connection::{ConnectionChannel, ConnectionResponse};
-use channels::receiver::{ReceiverChannel, ReceiverResponse};
+use channels::heartbeat::{HeartbeatChannel, HeartbeatResponse};
 use channels::media::{MediaChannel, MediaResponse};
+use channels::receiver::{ReceiverChannel, ReceiverResponse};
 
 use errors::Error;
 
@@ -223,10 +223,10 @@ impl<'a> CastDevice<'a> {
 
         Ok(CastDevice {
             message_manager: message_manager_rc,
-            heartbeat: heartbeat,
-            connection: connection,
-            receiver: receiver,
-            media: media,
+            heartbeat,
+            connection,
+            receiver,
+            media,
         })
     }
 }
