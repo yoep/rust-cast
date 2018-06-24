@@ -4,6 +4,17 @@
 * [Documentation](https://azasypkin.github.io/rust-cast/)
 * Try out [Rust Caster](https://github.com/azasypkin/rust-caster) to see this crate in action!
 
+# Build
+
+Proto files are taken from [Chromium GitHub mirror](https://github.com/chromium/chromium/tree/97ce436ecedbcd95f1375ab76d10682bef3171b0/components/cast_channel/proto).
+
+By default `cargo build` won't try to generate Rust code from the files located at `protobuf/*`, if you want to do that
+use `GENERATE_PROTO` environment variable during build and make sure you have `protoc` binary in `$PATH`:
+
+```bash
+$ GENERATE_PROTO=true cargo build
+```
+
 # DNS TXT Record description
 
 * `md` - Model Name (e.g. "Chromecast");
@@ -20,10 +31,6 @@
 
 * `Chromecast` - Regular chromecast, supports video/audio;
 * `Chromecast Audio` - Chromecast Audio device, supports only audio.
-
-# Proto files
-
-Proto files are taken from [Chromium GitHub mirror](https://github.com/chromium/chromium/tree/97ce436ecedbcd95f1375ab76d10682bef3171b0/components/cast_channel/proto).
 
 # Useful links and sources of inspiration
 

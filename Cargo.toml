@@ -7,9 +7,8 @@ repository = "https://github.com/azasypkin/rust-cast"
 readme = "README.md"
 license = "MIT"
 keywords = ["cast", "chromecast", "google"]
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
-exclude = ["ci/*"]
 categories = ["api-bindings", "hardware-support", "multimedia"]
 
 [dependencies]
