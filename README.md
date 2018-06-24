@@ -21,6 +21,10 @@
 * `Chromecast` - Regular chromecast, supports video/audio;
 * `Chromecast Audio` - Chromecast Audio device, supports only audio.
 
+# Proto files
+
+Proto files are taken from [Chromium GitHub mirror](https://github.com/chromium/chromium/tree/97ce436ecedbcd95f1375ab76d10682bef3171b0/components/cast_channel/proto).
+
 # Useful links and sources of inspiration
 
 * [DIAL Protocol](http://www.dial-multiscreen.org/);

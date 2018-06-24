@@ -178,11 +178,15 @@ impl<'a> CastDevice<'a> {
         let cast_message = self.message_manager.receive()?;
 
         if self.connection.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Connection(self.connection.parse(&cast_message)?));
+            return Ok(ChannelMessage::Connection(
+                self.connection.parse(&cast_message)?,
+            ));
         }
 
         if self.heartbeat.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Heartbeat(self.heartbeat.parse(&cast_message)?));
+            return Ok(ChannelMessage::Heartbeat(
+                self.heartbeat.parse(&cast_message)?,
+            ));
         }
 
         if self.media.can_handle(&cast_message) {
@@ -190,7 +194,9 @@ impl<'a> CastDevice<'a> {
         }
 
         if self.receiver.can_handle(&cast_message) {
-            return Ok(ChannelMessage::Receiver(self.receiver.parse(&cast_message)?));
+            return Ok(ChannelMessage::Receiver(
+                self.receiver.parse(&cast_message)?,
+            ));
         }
 
         Ok(ChannelMessage::Raw(cast_message))

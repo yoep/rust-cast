@@ -24,7 +24,7 @@ pub fn to_vec<M: protobuf::Message>(message: &M) -> Result<Vec<u8>, Error> {
     Ok(buffer)
 }
 
-pub fn from_vec<M: protobuf::MessageStatic>(buffer: Vec<u8>) -> Result<M, Error> {
+pub fn from_vec<M: protobuf::Message>(buffer: Vec<u8>) -> Result<M, Error> {
     let mut read_buffer = Cursor::new(buffer);
 
     Ok(protobuf::parse_from_reader::<M>(&mut read_buffer)?)

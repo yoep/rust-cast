@@ -417,7 +417,8 @@ where
                             app_id: app.app_id.clone(),
                             session_id: app.session_id.clone(),
                             transport_id: app.transport_id.clone(),
-                            namespaces: app.namespaces
+                            namespaces: app
+                                .namespaces
                                 .iter()
                                 .map(|ns| ns.name.clone())
                                 .collect::<Vec<String>>(),

@@ -817,7 +817,8 @@ where
                         }),
                         playback_rate: x.playback_rate,
                         player_state: PlayerState::from_str(x.player_state.as_ref()).unwrap(),
-                        idle_reason: x.idle_reason
+                        idle_reason: x
+                            .idle_reason
                             .as_ref()
                             .map(|reason| IdleReason::from_str(reason).unwrap()),
                         current_time: x.current_time,
