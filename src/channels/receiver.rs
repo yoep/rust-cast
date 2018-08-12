@@ -424,8 +424,7 @@ where
                                 .collect::<Vec<String>>(),
                             display_name: app.display_name.clone(),
                             status_text: app.status_text.clone(),
-                        })
-                        .collect::<Vec<Application>>(),
+                        }).collect::<Vec<Application>>(),
                     is_active_input: status_reply.status.is_active_input,
                     is_stand_by: status_reply.status.is_stand_by,
                     volume: Volume {
