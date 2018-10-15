@@ -355,9 +355,12 @@ pub struct StatusEntry {
     /// * `4` `Stream volume`;
     /// * `8` `Stream mute`;
     /// * `16` `Skip forward`;
-    /// * `32` `Skip backward`.
+    /// * `32` `Skip backward`;
+    /// * `1 << 12` `Unknown`;
+    /// * `1 << 13` `Unknown`;
+    /// * `1 << 18` `Unknown`.
     /// Combinations are described as summations; for example, Pause+Seek+StreamVolume+Mute == 15.
-    pub supported_media_commands: u8,
+    pub supported_media_commands: u32,
 }
 
 /// Describes the load cancelled error.

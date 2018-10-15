@@ -264,7 +264,7 @@ pub mod media {
         #[serde(rename = "currentTime")]
         pub current_time: Option<f32>,
         #[serde(rename = "supportedMediaCommands")]
-        pub supported_media_commands: u8,
+        pub supported_media_commands: u32,
     }
 
     #[derive(Deserialize, Debug)]
