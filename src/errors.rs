@@ -33,10 +33,10 @@ impl StdError for SslError {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
-            SslError::Generic(ref e) => e.cause(),
-            SslError::Handshake(ref e) => e.cause(),
+            SslError::Generic(ref e) => e.source(),
+            SslError::Handshake(ref e) => e.source(),
         }
     }
 }
@@ -80,7 +80,7 @@ impl StdError for Error {
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
             Error::Io(ref err) => Some(err),
             Error::Protobuf(ref err) => Some(err),

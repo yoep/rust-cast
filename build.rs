@@ -16,7 +16,8 @@ fn main() {
             customize: Customize {
                 ..Default::default()
             },
-        }).expect("protoc");
+        })
+        .expect("protoc");
     }
 
     println!("rerun-if-env-changed=GENERATE_PROTO");

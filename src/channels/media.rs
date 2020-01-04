@@ -1,14 +1,18 @@
-use std::borrow::Cow;
-use std::io::{Read, Write};
-use std::rc::Rc;
-use std::str::FromStr;
-use std::string::ToString;
+use std::{
+    borrow::Cow,
+    io::{Read, Write},
+    rc::Rc,
+    str::FromStr,
+    string::ToString,
+};
 
 use serde_json;
 
-use cast::proxies;
-use errors::Error;
-use message_manager::{CastMessage, CastMessagePayload, MessageManager};
+use crate::{
+    cast::proxies,
+    errors::Error,
+    message_manager::{CastMessage, CastMessagePayload, MessageManager},
+};
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
 
@@ -474,15 +478,19 @@ where
             }
 
             match self.parse(message)? {
-                MediaResponse::Status(status) => if status.request_id == request_id {
-                    return Ok(Some(status));
-                },
-                MediaResponse::InvalidRequest(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(format!(
-                        "Invalid request ({}).",
-                        error.reason.unwrap_or_else(|| "Unknown".to_string())
-                    )));
-                },
+                MediaResponse::Status(status) => {
+                    if status.request_id == request_id {
+                        return Ok(Some(status));
+                    }
+                }
+                MediaResponse::InvalidRequest(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(format!(
+                            "Invalid request ({}).",
+                            error.reason.unwrap_or_else(|| "Unknown".to_string())
+                        )));
+                    }
+                }
                 _ => {}
             }
 
@@ -611,19 +619,25 @@ where
                         return Ok(Some(status));
                     }
                 }
-                MediaResponse::LoadFailed(error) => if error.request_id == request_id {
-                    return Err(Error::Internal("Failed to load media.".to_string()));
-                },
-                MediaResponse::LoadCancelled(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(
-                        "Load cancelled by another request.".to_string(),
-                    ));
-                },
-                MediaResponse::InvalidPlayerState(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(
-                        "Load failed because of invalid player state.".to_string(),
-                    ));
-                },
+                MediaResponse::LoadFailed(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal("Failed to load media.".to_string()));
+                    }
+                }
+                MediaResponse::LoadCancelled(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            "Load cancelled by another request.".to_string(),
+                        ));
+                    }
+                }
+                MediaResponse::InvalidPlayerState(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            "Load failed because of invalid player state.".to_string(),
+                        ));
+                    }
+                }
                 _ => {}
             }
 
@@ -894,25 +908,31 @@ where
             }
 
             match self.parse(message)? {
-                MediaResponse::Status(mut status) => if status.request_id == request_id {
-                    let position = status
-                        .entries
-                        .iter()
-                        .position(|e| e.media_session_id == media_session_id);
+                MediaResponse::Status(mut status) => {
+                    if status.request_id == request_id {
+                        let position = status
+                            .entries
+                            .iter()
+                            .position(|e| e.media_session_id == media_session_id);
 
-                    return Ok(position.and_then(|position| Some(status.entries.remove(position))));
-                },
-                MediaResponse::InvalidPlayerState(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(
-                        "Request failed because of invalid player state.".to_string(),
-                    ));
-                },
-                MediaResponse::InvalidRequest(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(format!(
-                        "Invalid request ({}).",
-                        error.reason.unwrap_or_else(|| "Unknown".to_string())
-                    )));
-                },
+                        return Ok(position.map(|position| status.entries.remove(position)));
+                    }
+                }
+                MediaResponse::InvalidPlayerState(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(
+                            "Request failed because of invalid player state.".to_string(),
+                        ));
+                    }
+                }
+                MediaResponse::InvalidRequest(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(format!(
+                            "Invalid request ({}).",
+                            error.reason.unwrap_or_else(|| "Unknown".to_string())
+                        )));
+                    }
+                }
                 _ => {}
             }
 

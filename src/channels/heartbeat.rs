@@ -1,12 +1,16 @@
-use std::borrow::Cow;
-use std::io::{Read, Write};
-use std::rc::Rc;
+use std::{
+    borrow::Cow,
+    io::{Read, Write},
+    rc::Rc,
+};
 
 use serde_json;
 
-use cast::proxies;
-use errors::Error;
-use message_manager::{CastMessage, CastMessagePayload, MessageManager};
+use crate::{
+    cast::proxies,
+    errors::Error,
+    message_manager::{CastMessage, CastMessagePayload, MessageManager},
+};
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.heartbeat";
 

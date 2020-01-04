@@ -1,8 +1,7 @@
-use std::io::Cursor;
-
+use crate::errors::Error;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use errors::Error;
 use protobuf;
+use std::io::Cursor;
 
 pub fn read_u32_from_buffer(buffer: &[u8]) -> Result<u32, Error> {
     Ok(Cursor::new(buffer).read_u32::<BigEndian>()?)

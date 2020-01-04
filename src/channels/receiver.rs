@@ -1,15 +1,19 @@
-use std::borrow::Cow;
-use std::convert::Into;
-use std::io::{Read, Write};
-use std::rc::Rc;
-use std::str::FromStr;
-use std::string::ToString;
+use std::{
+    borrow::Cow,
+    convert::Into,
+    io::{Read, Write},
+    rc::Rc,
+    str::FromStr,
+    string::ToString,
+};
 
 use serde_json;
 
-use cast::proxies;
-use errors::Error;
-use message_manager::{CastMessage, CastMessagePayload, MessageManager};
+use crate::{
+    cast::proxies,
+    errors::Error,
+    message_manager::{CastMessage, CastMessagePayload, MessageManager},
+};
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.receiver";
 
@@ -227,15 +231,19 @@ where
             }
 
             match self.parse(message)? {
-                ReceiverResponse::Status(mut status) => if status.request_id == request_id {
-                    return Ok(Some(status.applications.remove(0)));
-                },
-                ReceiverResponse::LaunchError(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(format!(
-                        "Could not run application ({}).",
-                        error.reason.unwrap_or_else(|| "Unknown".to_string())
-                    )));
-                },
+                ReceiverResponse::Status(mut status) => {
+                    if status.request_id == request_id {
+                        return Ok(Some(status.applications.remove(0)));
+                    }
+                }
+                ReceiverResponse::LaunchError(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(format!(
+                            "Could not run application ({}).",
+                            error.reason.unwrap_or_else(|| "Unknown".to_string())
+                        )));
+                    }
+                }
                 _ => {}
             }
 
@@ -274,15 +282,19 @@ where
             }
 
             match self.parse(message)? {
-                ReceiverResponse::Status(status) => if status.request_id == request_id {
-                    return Ok(Some(()));
-                },
-                ReceiverResponse::InvalidRequest(error) => if error.request_id == request_id {
-                    return Err(Error::Internal(format!(
-                        "Invalid request ({}).",
-                        error.reason.unwrap_or_else(|| "Unknown".to_string())
-                    )));
-                },
+                ReceiverResponse::Status(status) => {
+                    if status.request_id == request_id {
+                        return Ok(Some(()));
+                    }
+                }
+                ReceiverResponse::InvalidRequest(error) => {
+                    if error.request_id == request_id {
+                        return Err(Error::Internal(format!(
+                            "Invalid request ({}).",
+                            error.reason.unwrap_or_else(|| "Unknown".to_string())
+                        )));
+                    }
+                }
                 _ => {}
             }
 
@@ -424,7 +436,8 @@ where
                                 .collect::<Vec<String>>(),
                             display_name: app.display_name.clone(),
                             status_text: app.status_text.clone(),
-                        }).collect::<Vec<Application>>(),
+                        })
+                        .collect::<Vec<Application>>(),
                     is_active_input: status_reply.status.is_active_input,
                     is_stand_by: status_reply.status.is_stand_by,
                     volume: Volume {
