@@ -28,13 +28,10 @@ branches:
 after_success: |-
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
-  [ $(uname -s) = Linux ] &&
+  [ $TRAVIS_OS_NAME = linux ] &&
+  [ $TRAVIS_RUST_VERSION = stable ] &&
   cargo doc &&
   echo "<meta http-equiv=refresh content=0;url=`echo rust_cast | cut -d '/' -f 2`/index.html>" > target/doc/index.html &&
   pip install ghp-import --user $USER &&
   $HOME/.local/bin/ghp-import -n target/doc &&
-  git push -qf https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
-
-env:
-  global:
-    secure: p23O1FUQwvppTiT6CEA0mkM4nC8EmMTUSLpCMjlgb4EqxblX2Oc4dWlSCc60PJ5ZNGiAux8N/VmkyxufNW+I2z/VgPZecnj9x4a0lL733kUHqzQB2fiDCUyBNV96SsNquDPpow8H0R6JDje4w0BZkAUx4JqX5THsVxlaGVd/Tsyo8Bkisebbyay4Aw6EmoBnuHZXfjEKq5tIR9KCbpQdsOUKXFBJVjhby7Dgo+UPL084vUvUOO60RE7CNMxwTzyF6vYWWbai1rSfAzFL/rBtEuG2ddcgmRNt6iRgA8s4fDL1q4bgN+9mQd2dCeJp8nG1BIysvg5YuOAfVeXJy8Fe9kaDCqW5k9eet5fFdckTGrZ2oZ6UWu94bWwFUQGsk7T8+fCUJGSZ6URTh3uYg6fzOYVR85uxyPW8gIYR2uxoFMHraLidRzxtQqnpLNCm4UHoINCOMLNglI+tHmgtbqWBp0wgswaR9cF0zrCkeW8R9tQkZ9kTAcxk9xPoUE7smK58XY6f8m4nvUhckzsBLT4Q8hC4CHbO51JleTefgm1NfE3nQ4DOJ/QPVoG1YBxEyRFtLrFAHsIY64wixYjFqdcjnShSkgFqv+qENGQZUHzQdGt+gSeJmJOuO41K/8IqsGkBPy+CgsDOMwRSyXdcm148UWKcFNcJRXffXhPyBMf4RYA=
+  git push -qf https://${GITHUB_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages

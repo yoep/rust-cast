@@ -29,7 +29,7 @@ const MESSAGE_TYPE_INVALID_PLAYER_STATE: &str = "INVALID_PLAYER_STATE";
 const MESSAGE_TYPE_INVALID_REQUEST: &str = "INVALID_REQUEST";
 
 /// Describes the way cast device should stream content.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum StreamType {
     /// This variant allows cast device to automatically choose whatever way it's most comfortable
     /// with.
@@ -65,7 +65,7 @@ impl ToString for StreamType {
 }
 
 /// Generic, movie, TV show, music track, or photo metadata.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Metadata {
     Generic(GenericMediaMetadata),
     Movie(MovieMediaMetadata),
@@ -77,7 +77,7 @@ pub enum Metadata {
 /// Generic media metadata.
 ///
 /// See also the [`GenericMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GenericMediaMetadata {
     /// Descriptive title of the content.
     pub title: Option<String>,
@@ -92,7 +92,7 @@ pub struct GenericMediaMetadata {
 /// Movie media metadata.
 ///
 /// See also the [`MovieMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#MovieMediaMetadata).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MovieMediaMetadata {
     /// Title of the movie.
     pub title: Option<String>,
@@ -109,7 +109,7 @@ pub struct MovieMediaMetadata {
 /// TV show media metadata.
 ///
 /// See also the [`TvShowMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#TvShowMediaMetadata).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TvShowMediaMetadata {
     /// Title of the TV series.
     pub series_title: Option<String>,
@@ -128,7 +128,7 @@ pub struct TvShowMediaMetadata {
 /// Music track media metadata.
 ///
 /// See also the [`MusicTrackMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#MusicTrackMediaMetadata).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MusicTrackMediaMetadata {
     /// Album or collection from which the track is taken.
     pub album_name: Option<String>,
@@ -153,7 +153,7 @@ pub struct MusicTrackMediaMetadata {
 /// Photo media metadata.
 ///
 /// See also the [`PhotoMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#PhotoMediaMetadata).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PhotoMediaMetadata {
     /// Title of the photograph.
     pub title: Option<String>,
@@ -177,7 +177,7 @@ pub struct PhotoMediaMetadata {
 /// of images.
 ///
 /// See also the [`Image` Cast reference](https://developers.google.com/cast/docs/reference/messages#Image).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Image {
     /// URL of the image.
     pub url: String,
@@ -203,7 +203,7 @@ impl Image {
 }
 
 /// Describes possible player states.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PlayerState {
     /// Player has not been loaded yet.
     Idle,
@@ -243,7 +243,7 @@ impl ToString for PlayerState {
 }
 
 /// Describes possible player idle reasons.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum IdleReason {
     /// A sender requested to stop playback using the STOP command.
     Cancelled,
@@ -271,7 +271,7 @@ impl FromStr for IdleReason {
 }
 
 /// Describes the operation to perform with playback while seeking.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ResumeState {
     /// Forces media to start.
     PlaybackStart,
@@ -303,7 +303,7 @@ impl ToString for ResumeState {
 }
 
 /// This data structure describes a media stream.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Media {
     /// Service-specific identifier of the content currently loaded by the media player. This is a
     /// free form string and is specific to the application. In most cases, this will be the URL to
@@ -321,7 +321,7 @@ pub struct Media {
 }
 
 /// Describes the current status of the media artifact with respect to the session.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Status {
     /// Unique id of the request that requested the status.
     pub request_id: i32,
@@ -330,7 +330,7 @@ pub struct Status {
 }
 
 /// Detailed status of the media artifact with respect to the session.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StatusEntry {
     /// Unique ID for the playback of this specific session. This ID is set by the receiver at LOAD
     /// and can be used to identify a specific instance of a playback. For example, two playbacks of
@@ -368,28 +368,28 @@ pub struct StatusEntry {
 }
 
 /// Describes the load cancelled error.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct LoadCancelled {
     /// Unique id of the request that caused this error.
     pub request_id: i32,
 }
 
 /// Describes the load failed error.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct LoadFailed {
     /// Unique id of the request that caused this error.
     pub request_id: i32,
 }
 
 /// Describes the invalid player state error.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct InvalidPlayerState {
     /// Unique id of the request that caused this error.
     pub request_id: i32,
 }
 
 /// Describes the invalid request error.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InvalidRequest {
     /// Unique id of the invalid request.
     pub request_id: i32,
@@ -398,7 +398,7 @@ pub struct InvalidRequest {
 }
 
 /// Represents all currently supported incoming messages that media channel can handle.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum MediaResponse {
     /// Statuses of the currently active media.
     Status(Status),

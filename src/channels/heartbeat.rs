@@ -17,7 +17,7 @@ const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.heartbeat";
 const MESSAGE_TYPE_PING: &str = "PING";
 const MESSAGE_TYPE_PONG: &str = "PONG";
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum HeartbeatResponse {
     Ping,
     Pong,

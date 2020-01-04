@@ -35,6 +35,7 @@ const DEFAULT_SENDER_ID: &str = "sender-0";
 const DEFAULT_RECEIVER_ID: &str = "receiver-0";
 
 /// Supported channel message types.
+#[derive(Clone, Debug)]
 pub enum ChannelMessage {
     /// Message to be processed by `ConnectionChannel`.
     Connection(ConnectionResponse),

@@ -18,7 +18,7 @@ const CHANNEL_USER_AGENT: &str = "RustCast";
 const MESSAGE_TYPE_CONNECT: &str = "CONNECT";
 const MESSAGE_TYPE_CLOSE: &str = "CLOSE";
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ConnectionResponse {
     Connect,
     Close,
