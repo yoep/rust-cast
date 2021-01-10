@@ -12,6 +12,7 @@ cache:
 
 script:
 - cargo build
+- cargo build --features thread_safe
 
 os:
 - linux

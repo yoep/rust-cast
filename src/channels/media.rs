@@ -1,7 +1,6 @@
 use std::{
     borrow::Cow,
     io::{Read, Write},
-    rc::Rc,
     str::FromStr,
     string::ToString,
 };
@@ -12,6 +11,7 @@ use crate::{
     cast::proxies,
     errors::Error,
     message_manager::{CastMessage, CastMessagePayload, MessageManager},
+    Lrc,
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
@@ -421,14 +421,14 @@ where
     W: Read + Write,
 {
     sender: Cow<'a, str>,
-    message_manager: Rc<MessageManager<W>>,
+    message_manager: Lrc<MessageManager<W>>,
 }
 
 impl<'a, W> MediaChannel<'a, W>
 where
     W: Read + Write,
 {
-    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>) -> MediaChannel<'a, W>
+    pub fn new<S>(sender: S, message_manager: Lrc<MessageManager<W>>) -> MediaChannel<'a, W>
     where
         S: Into<Cow<'a, str>>,
     {

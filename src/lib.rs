@@ -18,7 +18,6 @@ mod utils;
 
 use std::borrow::Cow;
 use std::net::TcpStream;
-use std::rc::Rc;
 
 use openssl::ssl::{SslConnector, SslMethod, SslStream, SslVerifyMode};
 
@@ -33,6 +32,11 @@ use message_manager::{CastMessage, MessageManager};
 
 const DEFAULT_SENDER_ID: &str = "sender-0";
 const DEFAULT_RECEIVER_ID: &str = "receiver-0";
+
+#[cfg(feature = "thread_safe")]
+type Lrc<T> = std::sync::Arc<T>;
+#[cfg(not(feature = "thread_safe"))]
+type Lrc<T> = std::rc::Rc<T>;
 
 /// Supported channel message types.
 #[derive(Clone, Debug)]
@@ -52,7 +56,7 @@ pub enum ChannelMessage {
 
 /// Structure that manages connection to a cast device.
 pub struct CastDevice<'a> {
-    message_manager: Rc<MessageManager<SslStream<TcpStream>>>,
+    message_manager: Lrc<MessageManager<SslStream<TcpStream>>>,
 
     /// Channel that manages connection responses/requests.
     pub connection: ConnectionChannel<'a, SslStream<TcpStream>>,
@@ -213,20 +217,20 @@ impl<'a> CastDevice<'a> {
     ///
     /// Instance of `CastDevice` that allows you to manage connection.
     fn connect_to_device(ssl_stream: SslStream<TcpStream>) -> Result<CastDevice<'a>, Error> {
-        let message_manager_rc = Rc::new(MessageManager::new(ssl_stream));
+        let message_manager_rc = Lrc::new(MessageManager::new(ssl_stream));
 
         let heartbeat = HeartbeatChannel::new(
             DEFAULT_SENDER_ID,
             DEFAULT_RECEIVER_ID,
-            Rc::clone(&message_manager_rc),
+            Lrc::clone(&message_manager_rc),
         );
-        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, Rc::clone(&message_manager_rc));
+        let connection = ConnectionChannel::new(DEFAULT_SENDER_ID, Lrc::clone(&message_manager_rc));
         let receiver = ReceiverChannel::new(
             DEFAULT_SENDER_ID,
             DEFAULT_RECEIVER_ID,
-            Rc::clone(&message_manager_rc),
+            Lrc::clone(&message_manager_rc),
         );
-        let media = MediaChannel::new(DEFAULT_SENDER_ID, Rc::clone(&message_manager_rc));
+        let media = MediaChannel::new(DEFAULT_SENDER_ID, Lrc::clone(&message_manager_rc));
 
         Ok(CastDevice {
             message_manager: message_manager_rc,

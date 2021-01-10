@@ -1,7 +1,6 @@
 use std::{
     borrow::Cow,
     io::{Read, Write},
-    rc::Rc,
 };
 
 use serde_json;
@@ -10,6 +9,7 @@ use crate::{
     cast::proxies,
     errors::Error,
     message_manager::{CastMessage, CastMessagePayload, MessageManager},
+    Lrc,
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.connection";
@@ -30,14 +30,14 @@ where
     W: Read + Write,
 {
     sender: Cow<'a, str>,
-    message_manager: Rc<MessageManager<W>>,
+    message_manager: Lrc<MessageManager<W>>,
 }
 
 impl<'a, W> ConnectionChannel<'a, W>
 where
     W: Read + Write,
 {
-    pub fn new<S>(sender: S, message_manager: Rc<MessageManager<W>>) -> ConnectionChannel<'a, W>
+    pub fn new<S>(sender: S, message_manager: Lrc<MessageManager<W>>) -> ConnectionChannel<'a, W>
     where
         S: Into<Cow<'a, str>>,
     {

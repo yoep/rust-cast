@@ -1,7 +1,6 @@
 use std::{
     borrow::Cow,
     io::{Read, Write},
-    rc::Rc,
 };
 
 use serde_json;
@@ -10,6 +9,7 @@ use crate::{
     cast::proxies,
     errors::Error,
     message_manager::{CastMessage, CastMessagePayload, MessageManager},
+    Lrc,
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.tp.heartbeat";
@@ -30,7 +30,7 @@ where
 {
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
-    message_manager: Rc<MessageManager<W>>,
+    message_manager: Lrc<MessageManager<W>>,
 }
 
 impl<'a, W> HeartbeatChannel<'a, W>
@@ -40,7 +40,7 @@ where
     pub fn new<S>(
         sender: S,
         receiver: S,
-        message_manager: Rc<MessageManager<W>>,
+        message_manager: Lrc<MessageManager<W>>,
     ) -> HeartbeatChannel<'a, W>
     where
         S: Into<Cow<'a, str>>,

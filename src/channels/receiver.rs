@@ -2,7 +2,6 @@ use std::{
     borrow::Cow,
     convert::Into,
     io::{Read, Write},
-    rc::Rc,
     str::FromStr,
     string::ToString,
 };
@@ -13,6 +12,7 @@ use crate::{
     cast::proxies,
     errors::Error,
     message_manager::{CastMessage, CastMessagePayload, MessageManager},
+    Lrc,
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.receiver";
@@ -174,7 +174,7 @@ where
 {
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
-    message_manager: Rc<MessageManager<W>>,
+    message_manager: Lrc<MessageManager<W>>,
 }
 
 impl<'a, W> ReceiverChannel<'a, W>
@@ -184,7 +184,7 @@ where
     pub fn new<S>(
         sender: S,
         receiver: S,
-        message_manager: Rc<MessageManager<W>>,
+        message_manager: Lrc<MessageManager<W>>,
     ) -> ReceiverChannel<'a, W>
     where
         S: Into<Cow<'a, str>>,
