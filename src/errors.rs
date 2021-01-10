@@ -26,13 +26,6 @@ impl Display for SslError {
 }
 
 impl StdError for SslError {
-    fn description(&self) -> &str {
-        match *self {
-            SslError::Generic(ref e) => e.description(),
-            SslError::Handshake(ref e) => e.description(),
-        }
-    }
-
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
             SslError::Generic(ref e) => e.source(),
@@ -70,16 +63,6 @@ impl Display for Error {
 }
 
 impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Internal(ref message) => message,
-            Error::Io(ref err) => err.description(),
-            Error::Protobuf(ref err) => err.description(),
-            Error::Serialization(ref err) => err.description(),
-            Error::Ssl(ref err) => err.description(),
-        }
-    }
-
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
             Error::Io(ref err) => Some(err),

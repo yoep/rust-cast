@@ -3,8 +3,6 @@ use std::{
     io::{Read, Write},
 };
 
-use serde_json;
-
 use crate::{
     cast::proxies,
     errors::Error,
