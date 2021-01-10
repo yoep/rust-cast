@@ -198,7 +198,11 @@ where
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// use std::str::FromStr;
+    /// use rust_cast::{CastDevice, channels::receiver::CastDeviceApp};
+    ///
+    /// # let cast_device = CastDevice::connect_without_host_verification("host", 1234).unwrap();
     /// cast_device.receiver.launch_app(&CastDeviceApp::from_str("youtube").unwrap());
     /// ```
     ///

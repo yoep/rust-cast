@@ -12,7 +12,9 @@ cache:
 
 script:
 - cargo build
+- cargo test
 - cargo build --features thread_safe
+- cargo test --features thread_safe
 
 os:
 - linux

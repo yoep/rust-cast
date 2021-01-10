@@ -184,14 +184,26 @@ where
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
+    /// # use std::net::TcpStream;
+    /// # use openssl::ssl::{SslConnector, SslMethod, SslStream, SslVerifyMode};
+    /// # use rust_cast::message_manager::{CastMessage, MessageManager};
+    /// # let connector = SslConnector::builder(SslMethod::tls()).unwrap().build();
+    /// # let tcp_stream = TcpStream::connect(("0", 8009)).unwrap();
+    /// # let ssl_stream = connector.connect("0", tcp_stream).unwrap();
+    /// # let message_manager = MessageManager::new(ssl_stream);
+    /// # fn can_handle(message: &CastMessage) -> bool { unimplemented!() }
+    /// # fn parse(message: &CastMessage) { unimplemented!() }
     /// message_manager.receive_find_map(|message| {
-    ///     if !can_handle(message) {
-    ///         return Ok(None);
-    ///     }
+    ///   if !can_handle(message) {
+    ///     return Ok(None);
+    ///   }
     ///
-    ///     parse(message)
-    /// })
+    ///   parse(message);
+    ///
+    ///   Ok(Some(()))
+    /// })?;
+    /// # Ok::<(), rust_cast::errors::Error>(())
     /// ```
     ///
     /// # Arguments

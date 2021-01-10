@@ -76,8 +76,11 @@ impl<'a> CastDevice<'a> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// let device = CastDevice::connect(args.flag_address.unwrap(), args.flag_port)?;
+    /// ```no_run
+    /// use rust_cast::CastDevice;
+    ///
+    /// let device = CastDevice::connect("192.168.1.2", 8009)?;
+    /// # Ok::<(), rust_cast::errors::Error>(())
     /// ```
     ///
     /// # Arguments
@@ -115,9 +118,11 @@ impl<'a> CastDevice<'a> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// let device = CastDevice::connect_without_host_verification(
-    ///     args.flag_address.unwrap(), args.flag_port)?;
+    /// ```no_run
+    /// use rust_cast::CastDevice;
+    ///
+    /// let device = CastDevice::connect_without_host_verification("192.168.1.2", 8009)?;
+    /// # Ok::<(), rust_cast::errors::Error>(())
     /// ```
     ///
     /// # Arguments
@@ -163,13 +168,19 @@ impl<'a> CastDevice<'a> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// use rust_cast::ChannelMessage;
+    ///
+    /// # use rust_cast::CastDevice;
+    /// # let cast_device = CastDevice::connect_without_host_verification("192.168.1.2", 8009)?;
+    ///
     /// match cast_device.receive() {
-    ///     Ok(ChannelMessage::Connection(res)) => debug!("Connection message: {:?}", res),
-    ///     Ok(ChannelMessage::Heartbeat(_)) => cast_device.heartbeat.pong(),
-    ///     .......
-    ///     Err(err) => error!("Error occurred while receiving message {}", err)
+    ///     Ok(ChannelMessage::Connection(res)) => log::debug!("Connection message: {:?}", res),
+    ///     Ok(ChannelMessage::Heartbeat(_)) => cast_device.heartbeat.pong()?,
+    ///     Ok(_) => {},
+    ///     Err(err) => log::error!("Error occurred while receiving message {}", err)
     /// }
+    /// # Ok::<(), rust_cast::errors::Error>(())
     /// ```
     ///
     /// # Errors
@@ -239,5 +250,20 @@ impl<'a> CastDevice<'a> {
             receiver,
             media,
         })
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    #[test]
+    #[cfg(feature = "thread_safe")]
+    fn test_thread_safe() {
+        use crate::CastDevice;
+
+        fn is_sync<T: Sync>() {}
+        fn is_send<T: Send>() {}
+
+        is_sync::<CastDevice>();
+        is_send::<CastDevice>();
     }
 }
