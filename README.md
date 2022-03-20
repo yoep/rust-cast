@@ -1,3 +1,4 @@
+[![Docs](https://docs.rs/rust_cast/badge.svg)](https://docs.rs/crate/rust_cast/)
 ![Build Status](https://github.com/azasypkin/rust-cast/actions/workflows/ci.yml/badge.svg)
 
 # Usage
