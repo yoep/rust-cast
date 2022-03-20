@@ -147,8 +147,12 @@ jobs:
           command: doc
           args: --all
 
+      - name: Create index.html
+        run: |
+          echo "<meta http-equiv=\"refresh\" content=\"0; url=rust_cast\">" > ./target/doc/index.html
+
       - name: Deploy documentation
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/doc/rust_cast
+          publish_dir: ./target/doc
