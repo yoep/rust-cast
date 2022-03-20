@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/azasypkin/rust-cast.svg?branch=master)](https://travis-ci.org/azasypkin/rust-cast)
+![Build Status](https://github.com/azasypkin/rust-cast/actions/workflows/ci.yml/badge.svg)
 
 # Usage
 * [Documentation](https://azasypkin.github.io/rust-cast/)
