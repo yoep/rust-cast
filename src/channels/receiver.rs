@@ -37,33 +37,33 @@ pub struct Volume {
     pub muted: Option<bool>,
 }
 
-/// This `Into<Volume>` implementation is useful when only volume level is needed.
-impl Into<Volume> for f32 {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self),
+/// This `From<f32>` implementation is useful when only volume level is needed.
+impl From<f32> for Volume {
+    fn from(level: f32) -> Self {
+        Self {
+            level: Some(level),
             muted: None,
         }
     }
 }
 
-/// This `Into<Volume>` implementation is useful when only mute/unmute state is needed.
-impl Into<Volume> for bool {
-    fn into(self) -> Volume {
-        Volume {
+/// This `From<bool>` implementation is useful when only mute/unmute state is needed.
+impl From<bool> for Volume {
+    fn from(muted: bool) -> Self {
+        Self {
             level: None,
-            muted: Some(self),
+            muted: Some(muted),
         }
     }
 }
 
-/// This `Into<Volume>` implementation is useful when both volume level and mute/unmute state are
+/// This `From<(f32, bool)>` implementation is useful when both volume level and mute/unmute state are
 /// needed.
-impl Into<Volume> for (f32, bool) {
-    fn into(self) -> Volume {
-        Volume {
-            level: Some(self.0),
-            muted: Some(self.1),
+impl From<(f32, bool)> for Volume {
+    fn from((level, muted): (f32, bool)) -> Self {
+        Self {
+            level: Some(level),
+            muted: Some(muted),
         }
     }
 }

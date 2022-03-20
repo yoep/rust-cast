@@ -211,14 +211,11 @@ pub mod media {
     }
 
     #[derive(Serialize, Debug)]
-    pub struct CustomData {
-        #[serde(skip_serializing)]
-        private: (),
-    }
+    pub struct CustomData {}
 
     impl CustomData {
         pub fn new() -> CustomData {
-            CustomData { private: () }
+            CustomData {}
         }
     }
 
@@ -255,27 +252,18 @@ pub mod media {
     pub struct LoadCancelledReply {
         #[serde(rename = "requestId")]
         pub request_id: i32,
-
-        #[serde(rename = "type")]
-        typ: String,
     }
 
     #[derive(Deserialize, Debug)]
     pub struct LoadFailedReply {
         #[serde(rename = "requestId")]
         pub request_id: i32,
-
-        #[serde(rename = "type")]
-        typ: String,
     }
 
     #[derive(Deserialize, Debug)]
     pub struct InvalidPlayerStateReply {
         #[serde(rename = "requestId")]
         pub request_id: i32,
-
-        #[serde(rename = "type")]
-        typ: String,
     }
 
     #[derive(Deserialize, Debug)]
