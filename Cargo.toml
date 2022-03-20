@@ -11,6 +11,11 @@ version = "0.17.0"
 authors = ["Aleh Zasypkin <aleh.zasypkin@gmail.com>"]
 categories = ["api-bindings", "hardware-support", "multimedia"]
 edition = "2021"
+exclude = [
+    ".github/*",
+    "examples/*",
+    "protobuf/*",
+]
 
 [dependencies]
 byteorder = "1.4.3"
