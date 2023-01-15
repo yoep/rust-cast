@@ -2,9 +2,15 @@ name: Rust Cast CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
+    paths-ignore:
+      - 'LICENSE'
+      - '*.md'
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
+    paths-ignore:
+      - 'LICENSE'
+      - '*.md'
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,147 +18,43 @@ env:
 jobs:
   ci:
     name: Build (Linux)
-    runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        rust: [stable, beta, nightly]
+        rust: [stable]
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v3
         name: Checkout
 
-      - uses: actions-rs/toolchain@v1
-        name: Install toolchain
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-          components: rustfmt, clippy
-
-      - uses: actions-rs/cargo@v1
-        name: Check format
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - uses: actions-rs/cargo@v1
-        name: Clippy
-        with:
-          command: clippy
-          args: -- -D warnings
-
-      - uses: actions-rs/cargo@v1
-        name: Build (default features)
-        with:
-          command: build
-          args: --release --examples
-
-      - uses: actions-rs/cargo@v1
-        name: Build (thread-safe feature)
-        with:
-          command: build
-          args: --release --examples --features thread_safe
-
-      - uses: actions-rs/cargo@v1
-        name: Test (default features)
-        with:
-          command: test
-
-      - uses: actions-rs/cargo@v1
-        name: Test (thread-safe feature)
-        with:
-          command: test
-          args: --features thread_safe
-
-  ci-osx:
-    name: Build (MacOS)
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        rust: [ stable, beta, nightly ]
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout
-
-      - uses: actions-rs/toolchain@v1
-        name: Install toolchain
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-
-      - uses: actions-rs/cargo@v1
-        name: Build (default features)
-        with:
-          command: build
-          args: --release --examples
-
-      - uses: actions-rs/cargo@v1
-        name: Build (thread-safe feature)
-        with:
-          command: build
-          args: --release --examples --features thread_safe
-
-  ci-osx-arm:
-    if: ${{ false }}
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        rust: [stable, beta, nightly]
-        target: [aarch64-unknown-linux-gnu]
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout
-
-      - uses: actions-rs/toolchain@v1
-        name: Install toolchain
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
-
-      - uses: actions-rs/cargo@v1
-        name: Build (default features)
-        with:
-          use-cross: true
-          command: build
-          args: --release --target=${{ matrix.target }} --examples
-
-      - uses: actions-rs/cargo@v1
-        name: Build (thread-safe feature)
-        with:
-          use-cross: true
-          command: build
-          args: --release --target=${{ matrix.target }} --examples --features thread_safe
-
-  ci-build-docs:
-    name: GitHub Pages
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          components: rustfmt, rust-src
-
-      - name: Build documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all
-
-      - name: Create index.html
+      # Always install nightly toolchain for `Rustfmt`.
+      - name: Install toolchain ${{ matrix.rust }}
         run: |
-          echo "<meta http-equiv=\"refresh\" content=\"0; url=rust_cast\">" > ./target/doc/index.html
+          rustup toolchain install ${{ matrix.rust }} nightly
+          rustup override set ${{ matrix.rust }}
+          rustup component add clippy
+          rustup component add --toolchain nightly rustfmt
 
-      - name: Deploy documentation
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/doc
+      - name: Cache Dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check format
+        run:  cargo +nightly fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Build (default features)
+        run: cargo build --release --examples
+
+      - name: Build (thread-safe feature)
+        run: cargo build --release --examples --features thread_safe
+
+      - name: Test (default features)
+        run:  cargo test
+
+      - name: Test (thread-safe feature)
+        run: cargo test --features thread_safe
