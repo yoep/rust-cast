@@ -255,16 +255,15 @@ where
         })
     }
 
-    ///
-    /// Sends message over chromecast message bus
+    /// Broadcasts a message over a cast device's message bus.
     ///
     /// Receiver can observe messages using `context.addCustomMessageListener` with custom namespace.
     ///
-    ///```javascript, no_run
+    /// ```javascript, no_run
     /// context.addCustomMessageListener('urn:x-cast:com.example.castdata', function(customEvent) {
-    /// // do something with message
+    ///   // do something with message
     /// });
-    ///```
+    /// ```
     ///
     /// Namespace should start with `urn:x-cast:`
     ///
@@ -272,7 +271,6 @@ where
     ///
     /// * `namespace` - Message namespace that should start with `urn:x-cast:`.
     /// * `message` - Message instance to send.
-
     pub fn broadcast_message<M: Serialize>(
         &self,
         namespace: &str,

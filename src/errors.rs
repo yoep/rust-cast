@@ -1,11 +1,12 @@
-use openssl::error::ErrorStack;
-use openssl::ssl::HandshakeError;
-use protobuf::ProtobufError;
+use openssl::{error::ErrorStack, ssl::HandshakeError};
+use protobuf::Error as ProtobufError;
 use serde_json::error::Error as SerializationError;
-use std::error::Error as StdError;
-use std::fmt::{Display, Formatter, Result};
-use std::io::Error as IoError;
-use std::net::TcpStream;
+use std::{
+    error::Error as StdError,
+    fmt::{Display, Formatter, Result},
+    io::Error as IoError,
+    net::TcpStream,
+};
 
 /// Consolidates possible error types that can occur in the OpenSSL lib.
 #[derive(Debug)]

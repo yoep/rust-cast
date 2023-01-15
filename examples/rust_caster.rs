@@ -459,7 +459,7 @@ fn main() {
 
     // Play media and keep connection.
     if let Some(media) = args.flag_media {
-        let media_type = args.flag_media_type.unwrap_or_else(|| "".to_string());
+        let media_type = args.flag_media_type.unwrap_or_default();
 
         let media_stream_type = match args.flag_media_stream_type.as_str() {
             value @ "buffered" | value @ "live" | value @ "none" => {
