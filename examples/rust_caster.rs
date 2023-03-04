@@ -1,18 +1,10 @@
-extern crate ansi_term;
-extern crate docopt;
-extern crate env_logger;
-#[macro_use]
-extern crate log;
-extern crate rust_cast;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
 use std::str::FromStr;
 
 use ansi_term::Colour::{Green, Red};
-
 use docopt::Docopt;
+use log::error;
+use mdns_sd::{ServiceDaemon, ServiceEvent};
+use serde::Deserialize;
 
 use rust_cast::{
     channels::{
@@ -23,6 +15,7 @@ use rust_cast::{
     CastDevice, ChannelMessage,
 };
 
+const SERVICE_TYPE: &str = "_googlecast._tcp.local.";
 const DEFAULT_DESTINATION_ID: &str = "receiver-0";
 
 const USAGE: &str = "
@@ -264,6 +257,46 @@ fn play_media(
     }
 }
 
+fn discover() -> Option<(String, u16)> {
+    let mdns = ServiceDaemon::new().expect("Failed to create mDNS daemon.");
+
+    let receiver = mdns
+        .browse(SERVICE_TYPE)
+        .expect("Failed to browse mDNS services.");
+
+    while let Ok(event) = receiver.recv() {
+        match event {
+            ServiceEvent::ServiceResolved(info) => {
+                let mut addresses = info
+                    .get_addresses()
+                    .iter()
+                    .map(|address| address.to_string())
+                    .collect::<Vec<_>>();
+                println!(
+                    "{}{}",
+                    Green.paint("Resolved a new service: "),
+                    Red.paint(format!(
+                        "{} ({})",
+                        info.get_fullname(),
+                        addresses.join(", ")
+                    ))
+                );
+
+                // Based on mDNS crate code we should have at least one address available.
+                return Some((addresses.remove(0), info.get_port()));
+            }
+            other_event => {
+                println!(
+                    "{}{}",
+                    Green.paint("Received other service event: "),
+                    Red.paint(format!("{:?}", other_event))
+                );
+            }
+        }
+    }
+    None
+}
+
 fn main() {
     env_logger::init();
 
@@ -271,15 +304,18 @@ fn main() {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    if args.flag_address.is_none() {
-        println!("Please specify Cast Device address!");
-        std::process::exit(1);
-    }
+    let (address, port) = match args.flag_address {
+        Some(address) => (address, args.flag_port),
+        None => {
+            println!("Cast Device address is not specified, trying to discover...");
+            discover().unwrap_or_else(|| {
+                println!("No Cast device discovered, please specify device address explicitly.");
+                std::process::exit(1);
+            })
+        }
+    };
 
-    let cast_device = match CastDevice::connect_without_host_verification(
-        args.flag_address.unwrap(),
-        args.flag_port,
-    ) {
+    let cast_device = match CastDevice::connect_without_host_verification(address, port) {
         Ok(cast_device) => cast_device,
         Err(err) => panic!("Could not establish connection with Cast Device: {:?}", err),
     };
