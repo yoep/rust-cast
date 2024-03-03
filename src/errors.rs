@@ -19,9 +19,10 @@ pub enum Error {
     /// This variant includes everything related to (de)serialization of incoming and outgoing
     /// messages.
     Serialization(SerializationError),
+    /// This variant is used to indicate invalid DNS name used to connect to Cast device.
     Dns(InvalidDnsNameError),
     /// This variant includes any error that comes from rustls.
-    Ssl(rustls::Error),
+    Tls(rustls::Error),
     /// Problems with given namespace
     Namespace(String),
 }
@@ -33,7 +34,7 @@ impl Display for Error {
             Error::Io(ref err) => Display::fmt(&err, f),
             Error::Protobuf(ref err) => Display::fmt(&err, f),
             Error::Serialization(ref err) => Display::fmt(&err, f),
-            Error::Ssl(ref err) => Display::fmt(&err, f),
+            Error::Tls(ref err) => Display::fmt(&err, f),
             Error::Dns(ref err) => Display::fmt(&err, f),
             Error::Namespace(ref err) => Display::fmt(&err, f),
         }
@@ -45,7 +46,7 @@ impl StdError for Error {
         match *self {
             Error::Io(ref err) => Some(err),
             Error::Protobuf(ref err) => Some(err),
-            Error::Ssl(ref err) => Some(err),
+            Error::Tls(ref err) => Some(err),
             Error::Dns(ref err) => Some(err),
             Error::Serialization(ref err) => Some(err),
             Error::Internal(_) => None,
@@ -74,7 +75,7 @@ impl From<SerializationError> for Error {
 
 impl From<rustls::Error> for Error {
     fn from(err: rustls::Error) -> Error {
-        Error::Ssl(err)
+        Error::Tls(err)
     }
 }
 

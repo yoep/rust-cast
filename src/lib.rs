@@ -17,11 +17,12 @@ use channels::{
 use errors::Error;
 use message_manager::{CastMessage, MessageManager};
 
-use rustls::client::danger::HandshakeSignatureValid;
-use rustls::crypto::{verify_tls12_signature, verify_tls13_signature};
-use rustls::pki_types::ServerName;
-use rustls::DigitallySignedStruct;
-use rustls::{ClientConnection, StreamOwned};
+use rustls::{
+    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    crypto::{ring::default_provider, verify_tls12_signature, verify_tls13_signature},
+    pki_types::{CertificateDer, ServerName, UnixTime},
+    ClientConfig, ClientConnection, DigitallySignedStruct, RootCertStore, StreamOwned,
+};
 
 const DEFAULT_SENDER_ID: &str = "sender-0";
 const DEFAULT_RECEIVER_ID: &str = "receiver-0";
@@ -94,33 +95,32 @@ impl<'a> CastDevice<'a> {
         S: Into<Cow<'a, str>>,
     {
         let host = host.into();
+        log::debug!("Establishing connection with cast device at {host}:{port}…");
 
-        log::debug!(
-            "Establishing connection with cast device at {}:{}...",
-            host,
-            port
+        let mut root_store = RootCertStore::empty();
+        let (valid, invalid) = root_store.add_parsable_certificates(
+            rustls_native_certs::load_native_certs().expect("Could not load platform certs."),
         );
-
-        let mut root_store = rustls::RootCertStore::empty();
-        for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs")
-        {
-            root_store.add(cert).unwrap();
+        if invalid > 0 {
+            log::warn!(
+                "Failed to parse {invalid} out of {} root certificates.",
+                valid + invalid
+            );
+        } else {
+            log::debug!("Successfully parsed {valid} root certificates.");
         }
 
-        let config: rustls::ClientConfig = rustls::ClientConfig::builder()
+        let config = rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth();
 
-        let server_name = ServerName::try_from(host.as_ref())?.to_owned();
-        let conn = rustls::ClientConnection::new(config.into(), server_name)?;
-        let sock = TcpStream::connect((host.as_ref(), port))?;
-        let stream = rustls::StreamOwned::new(conn, sock);
+        let conn = ClientConnection::new(
+            config.into(),
+            ServerName::try_from(host.as_ref())?.to_owned(),
+        )?;
+        let stream = StreamOwned::new(conn, TcpStream::connect((host.as_ref(), port))?);
 
-        log::debug!(
-            "Connection with {}:{} successfully established.",
-            host,
-            port
-        );
+        log::debug!("Connection with {host}:{port} successfully established.");
 
         CastDevice::connect_to_device(stream)
     }
@@ -156,27 +156,21 @@ impl<'a> CastDevice<'a> {
     {
         let host = host.into();
 
-        log::debug!(
-            "Establishing non-verified connection with cast device at {}:{}...",
-            host,
-            port
-        );
+        log::debug!("Establishing non-verified connection with cast device at {host}:{port}…");
 
-        let config = rustls::ClientConfig::builder()
+        let config = ClientConfig::builder()
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoCertificateVerification {}))
             .with_no_client_auth();
-
-        let server_name = ServerName::try_from(host.as_ref())?.to_owned();
-        let conn = rustls::ClientConnection::new(Arc::new(config.into()), server_name)?;
-        let sock = TcpStream::connect((host.as_ref(), port))?;
-        let stream = rustls::StreamOwned::new(conn, sock);
-
-        log::debug!(
-            "Connection with {}:{} successfully established.",
-            host,
-            port
+        let stream = StreamOwned::new(
+            ClientConnection::new(
+                Arc::new(config),
+                ServerName::try_from(host.as_ref())?.to_owned(),
+            )?,
+            TcpStream::connect((host.as_ref(), port))?,
         );
+
+        log::debug!("Connection with {host}:{port} successfully established.");
 
         CastDevice::connect_to_device(stream)
     }
@@ -289,50 +283,49 @@ pub(crate) mod tests {
 }
 
 #[derive(Debug)]
-pub struct NoCertificateVerification {}
-
-impl rustls::client::danger::ServerCertVerifier for NoCertificateVerification {
+pub struct NoCertificateVerification;
+impl ServerCertVerifier for NoCertificateVerification {
     fn verify_server_cert(
         &self,
-        _end_entity: &rustls::pki_types::CertificateDer<'_>,
-        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
-        _server_name: &rustls::pki_types::ServerName<'_>,
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
         _ocsp: &[u8],
-        _now: rustls::pki_types::UnixTime,
-    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
-        Ok(rustls::client::danger::ServerCertVerified::assertion())
+        _now: UnixTime,
+    ) -> Result<ServerCertVerified, rustls::Error> {
+        Ok(ServerCertVerified::assertion())
     }
 
     fn verify_tls12_signature(
         &self,
         message: &[u8],
-        cert: &rustls::pki_types::CertificateDer<'_>,
+        cert: &CertificateDer<'_>,
         dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, rustls::Error> {
         verify_tls12_signature(
             message,
             cert,
             dss,
-            &rustls::crypto::ring::default_provider().signature_verification_algorithms,
+            &default_provider().signature_verification_algorithms,
         )
     }
 
     fn verify_tls13_signature(
         &self,
         message: &[u8],
-        cert: &rustls::pki_types::CertificateDer<'_>,
+        cert: &CertificateDer<'_>,
         dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, rustls::Error> {
         verify_tls13_signature(
             message,
             cert,
             dss,
-            &rustls::crypto::ring::default_provider().signature_verification_algorithms,
+            &default_provider().signature_verification_algorithms,
         )
     }
 
     fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        rustls::crypto::ring::default_provider()
+        default_provider()
             .signature_verification_algorithms
             .supported_schemes()
     }

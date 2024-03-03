@@ -193,11 +193,16 @@ where
     ///
     /// ```no_run
     /// # use std::net::TcpStream;
-    /// # use openssl::ssl::{SslConnector, SslMethod, SslStream, SslVerifyMode};
     /// # use rust_cast::message_manager::{CastMessage, MessageManager};
-    /// # let connector = SslConnector::builder(SslMethod::tls()).unwrap().build();
+    /// # use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
+    /// # use rustls::pki_types::ServerName;
+    /// # let config = ClientConfig::builder()
+    /// #   .with_root_certificates(RootCertStore::empty())
+    /// #   .with_no_client_auth();
+    /// # let server_name = ServerName::try_from("0")?.to_owned();
+    /// # let conn = ClientConnection::new(config.into(), server_name)?;
     /// # let tcp_stream = TcpStream::connect(("0", 8009)).unwrap();
-    /// # let ssl_stream = connector.connect("0", tcp_stream).unwrap();
+    /// # let ssl_stream = StreamOwned::new(conn, tcp_stream);
     /// # let message_manager = MessageManager::new(ssl_stream);
     /// # fn can_handle(message: &CastMessage) -> bool { unimplemented!() }
     /// # fn parse(message: &CastMessage) { unimplemented!() }
