@@ -19,7 +19,7 @@ use message_manager::{CastMessage, MessageManager};
 
 use rustls::{
     client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
-    crypto::{ring::default_provider, verify_tls12_signature, verify_tls13_signature},
+    crypto::{aws_lc_rs::default_provider, verify_tls12_signature, verify_tls13_signature},
     pki_types::{CertificateDer, ServerName, UnixTime},
     ClientConfig, ClientConnection, DigitallySignedStruct, RootCertStore, StreamOwned,
 };
@@ -110,7 +110,7 @@ impl<'a> CastDevice<'a> {
             log::debug!("Successfully parsed {valid} root certificates.");
         }
 
-        let config = rustls::ClientConfig::builder()
+        let config = ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth();
 
