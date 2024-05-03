@@ -8,8 +8,8 @@ use std::{
 use crate::{
     cast::proxies,
     errors::Error,
-    message_manager::{CastMessage, CastMessagePayload, MessageManager},
     Lrc,
+    message_manager::{CastMessage, CastMessagePayload, MessageManager},
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
@@ -379,6 +379,24 @@ pub struct LoadFailed {
     pub request_id: u32,
 }
 
+/// The additional options for a load command request.
+#[derive(Copy, Clone, Debug)]
+pub struct LoadOptions {
+    /// The current time of the content to start the playback at.
+    pub current_time: f64,
+    /// Whether to start playback automatically after the media has been loaded.
+    pub autoplay: bool,
+}
+
+impl Default for LoadOptions {
+    fn default() -> Self {
+        LoadOptions {
+            current_time: 0f64,
+            autoplay: true,
+        }
+    }
+}
+
 /// Describes the invalid player state error.
 #[derive(Copy, Clone, Debug)]
 pub struct InvalidPlayerState {
@@ -507,6 +525,24 @@ where
     ///
     /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn load<S>(&self, destination: S, session_id: S, media: &Media) -> Result<Status, Error>
+        where
+            S: Into<Cow<'a, str>>,
+    {
+        self.load_with_opts(destination, session_id, media, LoadOptions::default())
+    }
+
+    /// Loads provided media to the application with the additional provided options.
+    ///
+    /// # Arguments
+    /// * `destination` - `protocol` of the application to load media with (e.g. `web-1`);
+    /// * `session_id` - Current session identifier of the player application;
+    /// * `media` - `Media` instance that describes the media we'd like to load.
+    /// * `options` - Additional options for the load request.
+    ///
+    /// # Return value
+    ///
+    /// Returned `Result` should consist of either `Status` instance or an `Error`.
+    pub fn load_with_opts<S>(&self, destination: S, session_id: S, media: &Media, options: LoadOptions) -> Result<Status, Error>
     where
         S: Into<Cow<'a, str>>,
     {
@@ -575,8 +611,8 @@ where
                 duration: media.duration,
             },
 
-            current_time: 0_f64,
-            autoplay: true,
+            current_time: options.current_time,
+            autoplay: options.autoplay,
             custom_data: proxies::media::CustomData::new(),
         })?;
 
