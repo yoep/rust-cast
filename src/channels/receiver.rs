@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     convert::Into,
+    fmt,
     io::{Read, Write},
     str::FromStr,
     string::ToString,
@@ -157,14 +158,15 @@ impl FromStr for CastDeviceApp {
     }
 }
 
-impl ToString for CastDeviceApp {
-    fn to_string(&self) -> String {
-        match *self {
+impl fmt::Display for CastDeviceApp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match *self {
             CastDeviceApp::DefaultMediaReceiver => APP_DEFAULT_MEDIA_RECEIVER_ID.to_string(),
             CastDeviceApp::Backdrop => APP_BACKDROP_ID.to_string(),
             CastDeviceApp::YouTube => APP_YOUTUBE_ID.to_string(),
             CastDeviceApp::Custom(ref app_id) => app_id.to_string(),
-        }
+        };
+        write!(f, "{}", str)
     }
 }
 

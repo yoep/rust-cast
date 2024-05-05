@@ -1,5 +1,6 @@
 use std::{
     borrow::Cow,
+    fmt,
     io::{Read, Write},
     str::FromStr,
     string::ToString,
@@ -8,8 +9,8 @@ use std::{
 use crate::{
     cast::proxies,
     errors::Error,
-    Lrc,
     message_manager::{CastMessage, CastMessagePayload, MessageManager},
+    Lrc,
 };
 
 const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
@@ -51,15 +52,15 @@ impl FromStr for StreamType {
     }
 }
 
-impl ToString for StreamType {
-    fn to_string(&self) -> String {
+impl fmt::Display for StreamType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stream_type = match *self {
             StreamType::None => "NONE",
             StreamType::Buffered => "BUFFERED",
             StreamType::Live => "LIVE",
         };
 
-        stream_type.to_string()
+        write!(f, "{}", stream_type)
     }
 }
 
@@ -366,8 +367,8 @@ impl FromStr for PlayerState {
     }
 }
 
-impl ToString for PlayerState {
-    fn to_string(&self) -> String {
+impl fmt::Display for PlayerState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let player_state = match *self {
             PlayerState::Idle => "IDLE",
             PlayerState::Playing => "PLAYING",
@@ -375,7 +376,7 @@ impl ToString for PlayerState {
             PlayerState::Paused => "PAUSED",
         };
 
-        player_state.to_string()
+        write!(f, "{}", player_state)
     }
 }
 
@@ -401,13 +402,13 @@ impl FromStr for ExtendedPlayerState {
     }
 }
 
-impl ToString for ExtendedPlayerState {
-    fn to_string(&self) -> String {
+impl fmt::Display for ExtendedPlayerState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let player_state = match *self {
             Self::Loading => "LOADING",
         };
 
-        player_state.to_string()
+        write!(f, "{}", player_state)
     }
 }
 
@@ -471,9 +472,9 @@ impl FromStr for QueueType {
     }
 }
 
-impl ToString for QueueType {
-    fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for QueueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
             QueueType::Album => "ALBUM",
             QueueType::Playlist => "PLAYLIST",
             QueueType::Audiobook => "AUDIOBOOK",
@@ -484,7 +485,8 @@ impl ToString for QueueType {
             QueueType::LiveTv => "LIVE_TV",
             QueueType::Movie => "MOVIE",
         }
-        .to_string()
+        .to_string();
+        write!(f, "{}", str)
     }
 }
 
@@ -509,14 +511,14 @@ impl FromStr for ResumeState {
     }
 }
 
-impl ToString for ResumeState {
-    fn to_string(&self) -> String {
+impl fmt::Display for ResumeState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let resume_state = match *self {
             ResumeState::PlaybackStart => "PLAYBACK_START",
             ResumeState::PlaybackPause => "PLAYBACK_PAUSE",
         };
 
-        resume_state.to_string()
+        write!(f, "{}", resume_state)
     }
 }
 
@@ -881,8 +883,8 @@ where
     ///
     /// Returned `Result` should consist of either `Status` instance or an `Error`.
     pub fn load<S>(&self, destination: S, session_id: S, media: &Media) -> Result<Status, Error>
-        where
-            S: Into<Cow<'a, str>>,
+    where
+        S: Into<Cow<'a, str>>,
     {
         self.load_with_opts(destination, session_id, media, LoadOptions::default())
     }
@@ -898,11 +900,17 @@ where
     /// # Return value
     ///
     /// Returned `Result` should consist of either `Status` instance or an `Error`.
-    pub fn load_with_opts<S>(&self, destination: S, session_id: S, media: &Media, options: LoadOptions) -> Result<Status, Error>
+    pub fn load_with_opts<S>(
+        &self,
+        destination: S,
+        session_id: S,
+        media: &Media,
+        options: LoadOptions,
+    ) -> Result<Status, Error>
     where
         S: Into<Cow<'a, str>>,
     {
-        self.load_with_queue(destination, session_id, media, None)
+        self.load_with_queue(destination, session_id, media, None, options)
     }
 
     /// Loads provided media to the application.
@@ -921,6 +929,7 @@ where
         session_id: S,
         media: &Media,
         queue: Option<&MediaQueue>,
+        options: LoadOptions,
     ) -> Result<Status, Error>
     where
         S: Into<Cow<'a, str>>,
