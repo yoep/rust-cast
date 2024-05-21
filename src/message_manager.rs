@@ -1,8 +1,13 @@
+use std::time::Duration;
 use std::{
     io::{Read, Write},
     num::NonZeroU32,
     ops::{Deref, DerefMut},
+    thread,
 };
+
+use crossbeam_channel::{select, tick, Receiver, Sender};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     cast::{
@@ -12,6 +17,8 @@ use crate::{
     errors::Error,
     utils,
 };
+
+const DEFAULT_MESSAGE_TIMEOUT_SECONDS: u64 = 30;
 
 struct Lock<T>(
     #[cfg(feature = "thread_safe")] std::sync::Mutex<T>,
@@ -60,7 +67,7 @@ impl<T> Lock<T> {
 }
 
 /// Type of the payload that `CastMessage` can have.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CastMessagePayload {
     /// Payload represented by UTF-8 string (usually it's just a JSON string).
     String(String),
@@ -69,7 +76,7 @@ pub enum CastMessagePayload {
 }
 
 /// Base structure that represents messages that are exchanged between Receiver and Sender.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CastMessage {
     /// A namespace is a labeled protocol. That is, messages that are exchanged throughout the
     /// Cast ecosystem utilize namespaces to identify the protocol of the message being sent.
@@ -82,26 +89,65 @@ pub struct CastMessage {
     pub payload: CastMessagePayload,
 }
 
-/// Static structure that is responsible for (de)serializing and sending/receiving Cast protocol
-/// messages.
-pub struct MessageManager<S>
-where
-    S: Write + Read,
-{
-    message_buffer: Lock<Vec<CastMessage>>,
-    stream: Lock<S>,
-    request_counter: Lock<NonZeroU32>,
+impl From<cast_channel::CastMessage> for CastMessage {
+    fn from(value: cast_channel::CastMessage) -> Self {
+        Self {
+            namespace: value.namespace().to_string(),
+            source: value.source_id().to_string(),
+            destination: value.destination_id().to_string(),
+            payload: match value.payload_type() {
+                PayloadType::STRING => CastMessagePayload::String(value.payload_utf8().to_string()),
+                PayloadType::BINARY => {
+                    CastMessagePayload::Binary(value.payload_binary().to_owned())
+                }
+            },
+        }
+    }
 }
 
-impl<S> MessageManager<S>
+/// Static structure that is responsible for (de)serializing and sending/receiving Cast protocol
+/// messages.
+pub struct MessageManager<W>
 where
-    S: Write + Read,
+    W: Write,
 {
-    pub fn new(stream: S) -> Self {
+    stream_writer: Lock<W>,
+    request_counter: Lock<NonZeroU32>,
+    channel_receiver: Receiver<CastMessage>,
+    cancellation_token: CancellationToken,
+}
+
+impl<W> MessageManager<W>
+where
+    W: Write,
+{
+    pub fn new<R: Read + Send + 'static>(mut reader: R, writer: W) -> Self {
+        // use a message channel to receive messages from the stream
+        // this allows us to fanout messages to multiple consumers/receivers without stealing messages
+        // from one of them
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        let cancellation_token = CancellationToken::new();
+
+        let thread_cancel = cancellation_token.clone();
+        thread::spawn(move || {
+            log::trace!("Starting to poll for new messages");
+            loop {
+                if thread_cancel.is_cancelled() {
+                    break;
+                }
+
+                if let Err(e) = Self::poll_message(&mut reader, &sender) {
+                    log::error!("Failed to poll Chromecast message, {}", e);
+                }
+            }
+            log::debug!("Messages poller has been stopped");
+        });
+
         MessageManager {
-            stream: Lock::new(stream),
-            message_buffer: Lock::new(vec![]),
+            stream_writer: Lock::new(writer),
             request_counter: Lock::new(NonZeroU32::MIN),
+            channel_receiver: receiver,
+            cancellation_token,
         }
     }
 
@@ -135,7 +181,7 @@ where
         let message_length_buffer =
             utils::write_u32_to_buffer(message_content_buffer.len() as u32)?;
 
-        let writer = &mut *self.stream.borrow_mut();
+        let writer = &mut *self.stream_writer.borrow_mut();
 
         writer.write_all(&message_length_buffer)?;
         writer.write_all(&message_content_buffer)?;
@@ -153,72 +199,9 @@ where
     ///
     /// `Result` containing parsed `CastMessage` or `Error`.
     pub fn receive(&self) -> Result<CastMessage, Error> {
-        let mut message_buffer = self.message_buffer.borrow_mut();
-
-        // If we have messages in the buffer, let's return them from it.
-        if message_buffer.is_empty() {
-            self.read()
-        } else {
-            Ok(message_buffer.remove(0))
-        }
-    }
-
-    /// Waits for the next `CastMessage` for which `f` returns valid mapped value. Messages in which
-    /// `f` is not interested are placed into internal message buffer and can be later retrieved
-    /// with `receive`. This method always reads from the stream.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use std::net::TcpStream;
-    /// # use rust_cast::message_manager::{CastMessage, MessageManager};
-    /// # use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
-    /// # use rustls::pki_types::ServerName;
-    /// # let config = ClientConfig::builder()
-    /// #   .with_root_certificates(RootCertStore::empty())
-    /// #   .with_no_client_auth();
-    /// # let server_name = ServerName::try_from("0")?.to_owned();
-    /// # let conn = ClientConnection::new(config.into(), server_name)?;
-    /// # let tcp_stream = TcpStream::connect(("0", 8009)).unwrap();
-    /// # let ssl_stream = StreamOwned::new(conn, tcp_stream);
-    /// # let message_manager = MessageManager::new(ssl_stream);
-    /// # fn can_handle(message: &CastMessage) -> bool { unimplemented!() }
-    /// # fn parse(message: &CastMessage) { unimplemented!() }
-    /// message_manager.receive_find_map(|message| {
-    ///   if !can_handle(message) {
-    ///     return Ok(None);
-    ///   }
-    ///
-    ///   parse(message);
-    ///
-    ///   Ok(Some(()))
-    /// })?;
-    /// # Ok::<(), rust_cast::errors::Error>(())
-    /// ```
-    ///
-    /// # Arguments
-    ///
-    /// * `f` - Function that analyzes and maps `CastMessage` to any other type. If message doesn't
-    /// look like something `f` is looking for, then `Ok(None)` should be returned so that message
-    /// is not lost and placed into internal message buffer for later retrieval.
-    ///
-    /// # Return value
-    ///
-    /// `Result` containing parsed `CastMessage` or `Error`.
-    pub fn receive_find_map<F, B>(&self, f: F) -> Result<B, Error>
-    where
-        F: Fn(&CastMessage) -> Result<Option<B>, Error>,
-    {
-        loop {
-            let message = self.read()?;
-
-            // If message is found, just return mapped result, otherwise keep unprocessed message
-            // in the buffer, it can be later retrieved with `receive`.
-            match f(&message)? {
-                Some(r) => return Ok(r),
-                None => self.message_buffer.borrow_mut().push(message),
-            }
-        }
+        self.channel_receiver
+            .recv()
+            .map_err(|e| Error::Internal(e.to_string()))
     }
 
     /// Generates unique integer number that is used in some requests to map them with the response.
@@ -233,41 +216,169 @@ where
         request_id
     }
 
-    /// Reads next `CastMessage` from the stream.
+    /// Subscribe to the message channel to receive incoming messages from the Chromecast device.
+    ///
+    /// # Note
+    ///
+    /// If a receiver is no longer used, it should be **dropped** to avoid the message channel from
+    /// storing infinite messages.
     ///
     /// # Return value
     ///
-    /// `Result` containing parsed `CastMessage` or `Error`.
-    fn read(&self) -> Result<CastMessage, Error> {
+    /// Returns a receiver channel to receive incoming messages from the Chromecast device.
+    pub fn subscribe(&self) -> Receiver<CastMessage> {
+        self.channel_receiver.clone()
+    }
+
+    /// Subscribe to the message channel to receive incoming messages from the Chromecast device.
+    /// The incoming messages are mapped using the provided `mapping_fn` function and filtered using
+    /// the provided mapping logic.
+    ///
+    /// # Note
+    ///
+    /// In regard to the `subscribe` fn, the receiver is automatically dropped once a message is received
+    /// or an error occurred while processing a message.
+    ///
+    /// # Return value
+    ///
+    /// Returns the mapped message if found or an error if there was a problem with the mapping.
+    pub fn subscribe_find<F, B>(&self, mapping_fn: F) -> Result<B, Error>
+    where
+        F: Fn(&CastMessage) -> Result<Option<B>, Error>,
+    {
+        let receiver = self.subscribe();
+        let timeout = tick(Duration::from_secs(DEFAULT_MESSAGE_TIMEOUT_SECONDS));
+
+        loop {
+            select! {
+                recv(receiver) -> message => {
+                    let message = message.map_err(|e| Error::Internal(e.to_string()))?;
+                    match mapping_fn(&message)? {
+                        Some(r) => return Ok(r),
+                        None => {}
+                    }
+                }
+                recv(timeout) -> _ => {
+                    return Err(Error::Timeout("Timed out while waiting for message".to_string()));
+                }
+            }
+        }
+    }
+
+    fn poll_message<R: Read + Send>(
+        reader: &mut R,
+        channel_sender: &Sender<CastMessage>,
+    ) -> Result<(), Error> {
+        log::trace!("Trying to read the next message length from the stream");
         let mut buffer: [u8; 4] = [0; 4];
-
-        let reader = &mut *self.stream.borrow_mut();
-
         reader.read_exact(&mut buffer)?;
 
         let length = utils::read_u32_from_buffer(&buffer)?;
+        log::trace!("Next message stream length is {}", length);
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
         let mut limited_reader = reader.take(u64::from(length));
 
+        log::trace!("Trying to read the next message from the stream");
         limited_reader.read_to_end(&mut buffer)?;
 
         let raw_message = utils::from_vec::<cast_channel::CastMessage>(buffer.to_vec())?;
 
         log::debug!("Message received: {:?}", raw_message);
+        let message = CastMessage::from(raw_message);
 
-        Ok(CastMessage {
-            namespace: raw_message.namespace().to_string(),
-            source: raw_message.source_id().to_string(),
-            destination: raw_message.destination_id().to_string(),
-            payload: match raw_message.payload_type() {
-                PayloadType::STRING => {
-                    CastMessagePayload::String(raw_message.payload_utf8().to_string())
-                }
-                PayloadType::BINARY => {
-                    CastMessagePayload::Binary(raw_message.payload_binary().to_owned())
-                }
-            },
-        })
+        // use the channel sender to send the received message
+        channel_sender
+            .send(message)
+            .map_err(|e| Error::Internal(format!("failed to send channel message, {}", e)))?;
+        Ok(())
+    }
+}
+
+impl<W> Drop for MessageManager<W>
+where
+    W: Write,
+{
+    fn drop(&mut self) {
+        self.cancellation_token.cancel();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use protobuf::EnumOrUnknown;
+
+    use crate::tests::{init_logger, MockTcpStream};
+    use crate::{DEFAULT_RECEIVER_ID, DEFAULT_SENDER_ID};
+
+    use super::*;
+
+    #[test]
+    fn test_receive() {
+        init_logger();
+        let mut stream = MockTcpStream::new();
+        let payload = r#"{"type":"PING"}"#;
+        stream.add_message(cast_channel::CastMessage {
+            protocol_version: Some(EnumOrUnknown::new(ProtocolVersion::CASTV2_1_2)),
+            source_id: Some(DEFAULT_RECEIVER_ID.to_string()),
+            destination_id: Some(DEFAULT_SENDER_ID.to_string()),
+            namespace: Some(crate::channels::heartbeat::CHANNEL_NAMESPACE.to_string()),
+            payload_type: Some(EnumOrUnknown::new(PayloadType::STRING)),
+            payload_utf8: Some(payload.to_string()),
+            payload_binary: None,
+            continued: None,
+            remaining_length: None,
+            special_fields: Default::default(),
+        });
+        let (reader, writer) = stream.split();
+        let message_manager = MessageManager::new(reader, writer);
+        let expected_result = CastMessage {
+            namespace: crate::channels::heartbeat::CHANNEL_NAMESPACE.to_string(),
+            source: DEFAULT_RECEIVER_ID.to_string(),
+            destination: DEFAULT_SENDER_ID.to_string(),
+            payload: CastMessagePayload::String(payload.to_string()),
+        };
+
+        let result = message_manager
+            .receive()
+            .expect("expected to receive a message");
+
+        assert_eq!(expected_result, result);
+    }
+
+    #[test]
+    fn test_send() {
+        init_logger();
+        let payload = r#"{"type":"PONG"}"#;
+        let namespace = crate::channels::heartbeat::CHANNEL_NAMESPACE;
+        let stream = MockTcpStream::new();
+        let (reader, writer) = stream.split();
+        let message_manager = MessageManager::new(reader, writer);
+        let expected_message = cast_channel::CastMessage {
+            protocol_version: Some(EnumOrUnknown::new(ProtocolVersion::CASTV2_1_0)),
+            source_id: Some(DEFAULT_SENDER_ID.to_string()),
+            destination_id: Some(DEFAULT_RECEIVER_ID.to_string()),
+            namespace: Some(namespace.to_string()),
+            payload_type: Some(EnumOrUnknown::new(PayloadType::STRING)),
+            payload_utf8: Some(payload.to_string()),
+            payload_binary: None,
+            continued: None,
+            remaining_length: None,
+            special_fields: Default::default(),
+        };
+
+        message_manager
+            .send(CastMessage {
+                namespace: namespace.to_string(),
+                source: DEFAULT_SENDER_ID.to_string(),
+                destination: DEFAULT_RECEIVER_ID.to_string(),
+                payload: CastMessagePayload::String(payload.to_string()),
+            })
+            .unwrap();
+
+        let tcp_message = stream
+            .received_message(0)
+            .expect("expected a message to have been received");
+        assert_eq!(expected_message, tcp_message.message());
     }
 }

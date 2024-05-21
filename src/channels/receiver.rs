@@ -1,11 +1,4 @@
-use std::{
-    borrow::Cow,
-    convert::Into,
-    fmt,
-    io::{Read, Write},
-    str::FromStr,
-    string::ToString,
-};
+use std::{borrow::Cow, convert::Into, fmt, io::Write, str::FromStr, string::ToString};
 
 use serde::Serialize;
 
@@ -72,7 +65,7 @@ impl From<(f32, bool)> for Volume {
 }
 
 /// Structure that describes currently run Cast Device application.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Application {
     /// The identifier of the Cast application. Not for display.
     pub app_id: String,
@@ -172,7 +165,7 @@ impl fmt::Display for CastDeviceApp {
 
 pub struct ReceiverChannel<'a, W>
 where
-    W: Write + Read,
+    W: Write,
 {
     sender: Cow<'a, str>,
     receiver: Cow<'a, str>,
@@ -181,7 +174,7 @@ where
 
 impl<'a, W> ReceiverChannel<'a, W>
 where
-    W: Write + Read,
+    W: Write,
 {
     pub fn new<S>(
         sender: S,
@@ -231,7 +224,7 @@ where
 
         // Once application is run cast receiver device should emit status update event, or launch
         // error event if something went wrong.
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -320,7 +313,7 @@ where
 
         // Once application is stopped cast receiver device should emit status update event, or
         // invalid request event if provided session id is not valid.
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -366,7 +359,7 @@ where
             payload: CastMessagePayload::String(payload),
         })?;
 
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -419,7 +412,7 @@ where
             payload: CastMessagePayload::String(payload),
         })?;
 
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -514,5 +507,134 @@ where
         };
 
         Ok(response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use protobuf::EnumOrUnknown;
+
+    use crate::cast::cast_channel;
+    use crate::cast::cast_channel::cast_message::{PayloadType, ProtocolVersion};
+    use crate::tests::{init_logger, MockTcpStream};
+    use crate::{DEFAULT_RECEIVER_ID, DEFAULT_SENDER_ID};
+
+    use super::*;
+
+    #[test]
+    fn test_launch_app() {
+        init_logger();
+        let app_id = "MyAppId";
+        let session_id = "MySessionId";
+        let transport_id = "MyTransportId";
+        let display_name = "MyDisplayName";
+        let status_text = "Idle";
+        let payload = format!(
+            r#"{{
+            "requestId":1,
+            "type":"{type}",
+            "status":{{
+                "applications": [
+                   {{
+                    "appId": "{app_id}",
+                    "sessionId": "{session_id}",
+                    "transportId": "{transport_id}",
+                    "namespaces": [],
+                    "displayName": "{display_name}",
+                    "statusText": "{status_text}"
+                   }}
+                ],
+                "isActiveInput": true,
+                "isStandBy": true,
+                "volume": {{
+                    "level": 1.0,
+                    "muted": false                    
+                }}
+            }}
+            }}"#,
+            type = MESSAGE_TYPE_RECEIVER_STATUS,
+            app_id = app_id,
+            session_id = session_id,
+            transport_id = transport_id,
+            display_name = display_name,
+            status_text = status_text
+        );
+        let mut stream = MockTcpStream::new();
+        stream.add_message(cast_channel::CastMessage {
+            protocol_version: Some(EnumOrUnknown::new(ProtocolVersion::CASTV2_1_2)),
+            source_id: Some(DEFAULT_RECEIVER_ID.to_string()),
+            destination_id: Some(DEFAULT_SENDER_ID.to_string()),
+            namespace: Some(CHANNEL_NAMESPACE.to_string()),
+            payload_type: Some(EnumOrUnknown::new(PayloadType::STRING)),
+            payload_utf8: Some(payload),
+            payload_binary: None,
+            continued: None,
+            remaining_length: None,
+            special_fields: Default::default(),
+        });
+        let (reader, writer) = stream.split();
+        let message_manager = Lrc::new(MessageManager::new(reader, writer));
+        let channel = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID, message_manager);
+
+        // verify if we got the expected response from the mock stream
+        let expected_application = Application {
+            app_id: app_id.to_string(),
+            session_id: session_id.to_string(),
+            transport_id: transport_id.to_string(),
+            namespaces: vec![],
+            display_name: display_name.to_string(),
+            status_text: status_text.to_string(),
+        };
+        let result = channel
+            .launch_app(&CastDeviceApp::DefaultMediaReceiver)
+            .unwrap();
+        assert_eq!(expected_application, result);
+
+        // verify if the expected message has been sent to the mock stream
+        let expected_message = r#"{"requestId":1,"type":"LAUNCH","appId":"CC1AD845"}"#;
+        let message = stream
+            .received_message(0)
+            .expect("expected a message to have been received");
+        let message = CastMessage::from(message.message());
+        assert_eq!(
+            CastMessagePayload::String(expected_message.to_string()),
+            message.payload
+        );
+    }
+
+    #[test]
+    fn test_broadcast_message() {
+        init_logger();
+        let namespace = "urn:x-cast:com.google.cast.media";
+        let destination = "*";
+        let payload = r#"{"requestId":1,"type":"GET_STATUS"}"#;
+        let broadcast_message = cast_channel::CastMessage {
+            protocol_version: Some(EnumOrUnknown::new(ProtocolVersion::CASTV2_1_0)),
+            source_id: Some(DEFAULT_SENDER_ID.to_string()),
+            destination_id: Some(destination.to_string()),
+            namespace: Some(namespace.to_string()),
+            payload_type: Some(EnumOrUnknown::new(PayloadType::STRING)),
+            payload_utf8: Some(payload.to_string()),
+            payload_binary: None,
+            continued: None,
+            remaining_length: None,
+            special_fields: Default::default(),
+        };
+        let stream = MockTcpStream::new();
+        let (reader, writer) = stream.split();
+        let message_manager = Lrc::new(MessageManager::new(reader, writer));
+        let channel = ReceiverChannel::new(DEFAULT_SENDER_ID, DEFAULT_RECEIVER_ID, message_manager);
+
+        channel
+            .broadcast_message(namespace, &broadcast_message.payload_utf8())
+            .expect("expected the message to have been broadcast");
+
+        let message = stream
+            .received_message(0)
+            .expect("expected a message to have been received");
+        let message = message.message();
+        assert_eq!(DEFAULT_SENDER_ID, message.source_id());
+        assert_eq!(destination, message.destination_id());
+        assert_eq!(namespace, message.namespace());
     }
 }

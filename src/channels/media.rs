@@ -1,10 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt,
-    io::{Read, Write},
-    str::FromStr,
-    string::ToString,
-};
+use std::{borrow::Cow, fmt, io::Write, str::FromStr, string::ToString};
 
 use crate::{
     cast::proxies,
@@ -13,21 +7,21 @@ use crate::{
     Lrc,
 };
 
-const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
+pub(crate) const CHANNEL_NAMESPACE: &str = "urn:x-cast:com.google.cast.media";
 
-const MESSAGE_TYPE_GET_STATUS: &str = "GET_STATUS";
-const MESSAGE_TYPE_LOAD: &str = "LOAD";
-const MESSAGE_TYPE_QUEUE_LOAD: &str = "QUEUE_LOAD";
-const MESSAGE_TYPE_PLAY: &str = "PLAY";
-const MESSAGE_TYPE_PAUSE: &str = "PAUSE";
-const MESSAGE_TYPE_STOP: &str = "STOP";
-const MESSAGE_TYPE_SEEK: &str = "SEEK";
-const MESSAGE_TYPE_MEDIA_STATUS: &str = "MEDIA_STATUS";
-const MESSAGE_TYPE_LOAD_CANCELLED: &str = "LOAD_CANCELLED";
-const MESSAGE_TYPE_LOAD_FAILED: &str = "LOAD_FAILED";
-const MESSAGE_TYPE_INVALID_PLAYER_STATE: &str = "INVALID_PLAYER_STATE";
-const MESSAGE_TYPE_INVALID_REQUEST: &str = "INVALID_REQUEST";
-const MESSAGE_TYPE_ERROR: &str = "ERROR";
+pub(crate) const MESSAGE_TYPE_GET_STATUS: &str = "GET_STATUS";
+pub(crate) const MESSAGE_TYPE_LOAD: &str = "LOAD";
+pub(crate) const MESSAGE_TYPE_QUEUE_LOAD: &str = "QUEUE_LOAD";
+pub(crate) const MESSAGE_TYPE_PLAY: &str = "PLAY";
+pub(crate) const MESSAGE_TYPE_PAUSE: &str = "PAUSE";
+pub(crate) const MESSAGE_TYPE_STOP: &str = "STOP";
+pub(crate) const MESSAGE_TYPE_SEEK: &str = "SEEK";
+pub(crate) const MESSAGE_TYPE_MEDIA_STATUS: &str = "MEDIA_STATUS";
+pub(crate) const MESSAGE_TYPE_LOAD_CANCELLED: &str = "LOAD_CANCELLED";
+pub(crate) const MESSAGE_TYPE_LOAD_FAILED: &str = "LOAD_FAILED";
+pub(crate) const MESSAGE_TYPE_INVALID_PLAYER_STATE: &str = "INVALID_PLAYER_STATE";
+pub(crate) const MESSAGE_TYPE_INVALID_REQUEST: &str = "INVALID_REQUEST";
+pub(crate) const MESSAGE_TYPE_ERROR: &str = "ERROR";
 
 /// Describes the way cast device should stream content.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -66,7 +60,7 @@ impl fmt::Display for StreamType {
 }
 
 /// Generic, movie, TV show, music track, or photo metadata.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Metadata {
     Generic(GenericMediaMetadata),
     Movie(MovieMediaMetadata),
@@ -201,7 +195,7 @@ impl TryFrom<&proxies::media::Metadata> for Metadata {
 /// Generic media metadata.
 ///
 /// See also the [`GenericMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#GenericMediaMetadata).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GenericMediaMetadata {
     /// Descriptive title of the content.
     pub title: Option<String>,
@@ -216,7 +210,7 @@ pub struct GenericMediaMetadata {
 /// Movie media metadata.
 ///
 /// See also the [`MovieMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#MovieMediaMetadata).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MovieMediaMetadata {
     /// Title of the movie.
     pub title: Option<String>,
@@ -233,7 +227,7 @@ pub struct MovieMediaMetadata {
 /// TV show media metadata.
 ///
 /// See also the [`TvShowMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#TvShowMediaMetadata).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TvShowMediaMetadata {
     /// Title of the TV series.
     pub series_title: Option<String>,
@@ -252,7 +246,7 @@ pub struct TvShowMediaMetadata {
 /// Music track media metadata.
 ///
 /// See also the [`MusicTrackMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#MusicTrackMediaMetadata).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MusicTrackMediaMetadata {
     /// Album or collection from which the track is taken.
     pub album_name: Option<String>,
@@ -277,7 +271,7 @@ pub struct MusicTrackMediaMetadata {
 /// Photo media metadata.
 ///
 /// See also the [`PhotoMediaMetadata` Cast reference](https://developers.google.com/cast/docs/reference/messages#PhotoMediaMetadata).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PhotoMediaMetadata {
     /// Title of the photograph.
     pub title: Option<String>,
@@ -301,7 +295,7 @@ pub struct PhotoMediaMetadata {
 /// of images.
 ///
 /// See also the [`Image` Cast reference](https://developers.google.com/cast/docs/reference/messages#Image).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Image {
     /// URL of the image.
     pub url: String,
@@ -524,7 +518,7 @@ impl fmt::Display for ResumeState {
 }
 
 /// This data structure describes a media stream.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Media {
     /// Service-specific identifier of the content currently loaded by the media player. This is a
     /// free form string and is specific to the application. In most cases, this will be the URL to
@@ -615,7 +609,7 @@ impl MediaQueue {
 }
 
 /// Describes the current status of the media artifact with respect to the session.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Status {
     /// Unique id of the request that requested the status.
     pub request_id: u32,
@@ -624,7 +618,7 @@ pub struct Status {
 }
 
 /// Status of loading the next media
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ExtendedStatus {
     /// Describes the state of the player.
     pub player_state: ExtendedPlayerState,
@@ -650,7 +644,7 @@ impl TryFrom<&proxies::media::ExtendedStatus> for ExtendedStatus {
 }
 
 /// Detailed status of the media artifact with respect to the session.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StatusEntry {
     /// Unique ID for the playback of this specific session. This ID is set by the receiver at LOAD
     /// and can be used to identify a specific instance of a playback. For example, two playbacks of
@@ -725,21 +719,21 @@ impl TryFrom<&proxies::media::Status> for StatusEntry {
 }
 
 /// Describes the load cancelled error.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct LoadCancelled {
     /// Unique id of the request that caused this error.
     pub request_id: u32,
 }
 
 /// Describes the load failed error.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct LoadFailed {
     /// Unique id of the request that caused this error.
     pub request_id: u32,
 }
 
 /// The additional options for a load command request.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct LoadOptions {
     /// The current time of the content to start the playback at.
     pub current_time: f64,
@@ -757,14 +751,14 @@ impl Default for LoadOptions {
 }
 
 /// Describes the invalid player state error.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct InvalidPlayerState {
     /// Unique id of the request that caused this error.
     pub request_id: u32,
 }
 
 /// Describes the invalid request error.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InvalidRequest {
     /// Unique id of the invalid request.
     pub request_id: u32,
@@ -921,7 +915,7 @@ impl TryFrom<i32> for MediaDetailedErrorCode {
 }
 
 /// Represents all currently supported incoming messages that media channel can handle.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MediaResponse {
     /// Statuses of the currently active media.
     Status(Status),
@@ -943,7 +937,7 @@ pub enum MediaResponse {
 
 pub struct MediaChannel<'a, W>
 where
-    W: Read + Write,
+    W: Write,
 {
     sender: Cow<'a, str>,
     message_manager: Lrc<MessageManager<W>>,
@@ -951,7 +945,7 @@ where
 
 impl<'a, W> MediaChannel<'a, W>
 where
-    W: Read + Write,
+    W: Write,
 {
     pub fn new<S>(sender: S, message_manager: Lrc<MessageManager<W>>) -> MediaChannel<'a, W>
     where
@@ -997,7 +991,7 @@ where
             payload: CastMessagePayload::String(payload),
         })?;
 
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -1109,7 +1103,7 @@ where
 
         // Once media is loaded cast receiver device should emit status update event, or load failed
         // event if something went wrong.
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -1201,7 +1195,7 @@ where
 
         // Once media is loaded cast receiver device should emit status update event, or load failed
         // event if something went wrong.
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -1496,7 +1490,7 @@ where
         request_id: u32,
         media_session_id: i32,
     ) -> Result<StatusEntry, Error> {
-        self.message_manager.receive_find_map(|message| {
+        self.message_manager.subscribe_find(|message| {
             if !self.can_handle(message) {
                 return Ok(None);
             }
@@ -1537,9 +1531,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::tests::{init_logger, MockTcpStream};
     use crate::{
         cast::cast_channel::cast_message::{PayloadType, ProtocolVersion},
-        channels::tests::MockTcpStream,
         DEFAULT_RECEIVER_ID, DEFAULT_SENDER_ID,
     };
     use protobuf::EnumOrUnknown;
@@ -1548,6 +1542,7 @@ mod tests {
 
     #[test]
     fn test_get_status() {
+        init_logger();
         let mut stream = MockTcpStream::new();
         let payload = format!(
             r#"{{
@@ -1564,7 +1559,7 @@ mod tests {
         }}"#,
             MESSAGE_TYPE_MEDIA_STATUS
         );
-        stream.set_message(crate::cast::cast_channel::CastMessage {
+        stream.add_message(crate::cast::cast_channel::CastMessage {
             protocol_version: Some(EnumOrUnknown::new(ProtocolVersion::CASTV2_1_2)),
             source_id: Some(DEFAULT_RECEIVER_ID.to_string()),
             destination_id: Some(DEFAULT_SENDER_ID.to_string()),
@@ -1576,9 +1571,10 @@ mod tests {
             remaining_length: None,
             special_fields: Default::default(),
         });
+        let (reader, writer) = stream.split();
         let channel = MediaChannel {
             sender: Cow::from(DEFAULT_SENDER_ID),
-            message_manager: Lrc::new(MessageManager::new(stream)),
+            message_manager: Lrc::new(MessageManager::new(reader, writer)),
         };
 
         let result = channel.get_status("MyAppTransportId", None).unwrap();
@@ -1594,6 +1590,7 @@ mod tests {
 
     #[test]
     fn test_parse_media_error() {
+        init_logger();
         let message = CastMessage {
             namespace: CHANNEL_NAMESPACE.to_string(),
             source: DEFAULT_RECEIVER_ID.to_string(),
@@ -1602,9 +1599,11 @@ mod tests {
                 "{\"type\":\"ERROR\",\"detailedErrorCode\":104,\"itemId\":1}".to_string(),
             ),
         };
+        let stream = MockTcpStream::new();
+        let (reader, writer) = stream.split();
         let channel = MediaChannel {
             sender: Cow::from(DEFAULT_SENDER_ID),
-            message_manager: Lrc::new(MessageManager::new(MockTcpStream::new())),
+            message_manager: Lrc::new(MessageManager::new(reader, writer)),
         };
         let expected_result = MediaError {
             detailed_error_code: MediaDetailedErrorCode::MediaSrcNotSupported,
@@ -1622,6 +1621,7 @@ mod tests {
 
     #[test]
     fn test_parse_unknown_message_type() {
+        init_logger();
         let message_type = "FOO_BAR";
         let payload = format!("{{\"type\":\"{}\",\"itemId\":666}}", message_type);
         let expected_payload = serde_json::from_str::<serde_json::Value>(payload.as_str()).unwrap();
@@ -1631,18 +1631,17 @@ mod tests {
             destination: DEFAULT_SENDER_ID.to_string(),
             payload: CastMessagePayload::String(payload),
         };
+        let stream = MockTcpStream::new();
+        let (reader, writer) = stream.split();
         let channel = MediaChannel {
             sender: Cow::from(DEFAULT_SENDER_ID),
-            message_manager: Lrc::new(MessageManager::new(MockTcpStream::new())),
+            message_manager: Lrc::new(MessageManager::new(reader, writer)),
         };
+        let expected_result =
+            MediaResponse::NotImplemented(message_type.to_string(), expected_payload);
 
-        let response = channel.parse(&message).unwrap();
+        let result = channel.parse(&message).unwrap();
 
-        if let MediaResponse::NotImplemented(result_code, result_payload) = response {
-            assert_eq!(message_type, result_code);
-            assert_eq!(expected_payload, result_payload);
-        } else {
-            panic!("expected MediaResponse::Error, but got {:?}", response);
-        }
+        assert_eq!(expected_result, result);
     }
 }

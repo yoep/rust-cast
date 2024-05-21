@@ -19,6 +19,7 @@ exclude = [
 
 [dependencies]
 byteorder = "1.5"
+crossbeam-channel = "0.5"
 log = "0.4"
 protobuf = "=3.4.0"
 rustls = "0.23"
@@ -26,11 +27,14 @@ rustls-native-certs = "0.7"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+thiserror = "1.0.61"
+tokio-util = "0.7.11"
 
 [dev-dependencies]
 ansi_term = "0.12.1"
 docopt = "1.1.1"
 env_logger = "0.11.3"
+log4rs = { version = "1", features = ["console_writer"] }
 mdns-sd = "0.11.0"
 
 [build-dependencies]
