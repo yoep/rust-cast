@@ -137,7 +137,7 @@ where
                 }
 
                 if let Err(e) = Self::poll_message(&mut reader, &sender) {
-                    log::error!("Failed to poll Chromecast message, {}", e);
+                    log::debug!("Failed to poll Chromecast message, {}", e);
                 }
             }
             log::debug!("Messages poller has been stopped");
@@ -277,10 +277,8 @@ where
         log::trace!("Next message stream length is {}", length);
 
         let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
-        let mut limited_reader = reader.take(u64::from(length));
-
         log::trace!("Trying to read the next message from the stream");
-        limited_reader.read_to_end(&mut buffer)?;
+        reader.read_exact(&mut buffer)?;
 
         let raw_message = utils::from_vec::<cast_channel::CastMessage>(buffer.to_vec())?;
 

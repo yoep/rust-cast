@@ -18,7 +18,10 @@ use channels::{
 use errors::Error;
 use message_manager::{CastMessage, MessageManager};
 
+#[cfg(not(feature = "cast"))]
 mod cast;
+#[cfg(feature = "cast")]
+pub mod cast;
 pub mod channels;
 pub mod errors;
 pub mod message_manager;
