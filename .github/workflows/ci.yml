@@ -6,11 +6,13 @@ on:
     paths-ignore:
       - 'LICENSE'
       - '*.md'
+      - '*.json'
   pull_request:
     branches: [ main ]
     paths-ignore:
       - 'LICENSE'
       - '*.md'
+      - '*.json'
 
 env:
   CARGO_TERM_COLOR: always
